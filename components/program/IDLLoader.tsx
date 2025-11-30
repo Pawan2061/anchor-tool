@@ -79,7 +79,6 @@ export function IDLLoader() {
       const pubkey = new PublicKey(programId);
       addProgram(programName, pubkey, idl, network);
 
-      // Reset form
       setProgramName("");
       setProgramId("");
       setIdlJson("");
