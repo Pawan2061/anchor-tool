@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Wallet, Plus, Upload, RefreshCw, X, CheckCircle2 } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useWalletStore } from "@/stores/walletStore";
@@ -39,7 +40,7 @@ export function WalletManager() {
         }
       );
     }
-  }, [connection, activeWallet?.publicKey]);
+  }, [connection, activeWallet, updateWalletBalance]);
 
   const handleGenerate = async () => {
     const keypair = generateKeypair();
@@ -60,8 +61,10 @@ export function WalletManager() {
       setImportValue("");
       setImportName("");
       setShowImport(false);
-    } catch (err: any) {
-      setError(err.message || "Invalid keypair format");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Invalid keypair format";
+      setError(errorMessage);
     }
   };
 
@@ -77,37 +80,41 @@ export function WalletManager() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Wallets</h3>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Connect Wallet
-        </p>
+    <div className="space-y-5">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Wallet className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+            External Wallet
+          </h3>
+        </div>
         {connected && publicKey ? (
-          <div className="p-4 border border-green-300 dark:border-green-700 rounded-md bg-green-50 dark:bg-green-900/20">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="font-medium text-sm text-green-800 dark:text-green-200">
-                  {connectedWallet?.name || "Connected Wallet"}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 font-mono mt-1">
+          <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                    {connectedWallet?.name || "Connected Wallet"}
+                  </p>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1 break-all">
                   {formatPublicKey(publicKey)}
                 </p>
               </div>
               <button
                 onClick={disconnect}
-                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                className="ml-2 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors flex-shrink-0"
               >
-                Disconnect
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
             {connectedWallet && (
-              <div className="text-sm text-green-700 dark:text-green-300">
-                <span>Balance: </span>
-                <span className="font-medium">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-xs text-slate-600 dark:text-slate-400">
+                  Balance
+                </span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
                   {connectedWallet.balance !== undefined
                     ? formatLamports(connectedWallet.balance)
                     : "Loading..."}
@@ -117,69 +124,97 @@ export function WalletManager() {
             {activeWalletId !== "connected-wallet" && (
               <button
                 onClick={() => setActiveWallet("connected-wallet")}
-                className="mt-2 px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                className="mt-3 w-full px-3 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
               >
-                Use This Wallet
+                Set as Active
               </button>
             )}
             {activeWalletId === "connected-wallet" && (
-              <span className="mt-2 inline-block px-2 py-1 text-xs bg-blue-500 text-white rounded">
-                Active
-              </span>
+              <div className="mt-3 px-3 py-1.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-center">
+                Active Wallet
+              </div>
             )}
           </div>
         ) : (
           <button
             onClick={() => setVisible(true)}
-            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            className="w-full px-4 py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2"
           >
+            <Wallet className="w-4 h-4" />
             Connect Wallet
           </button>
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Imported Keypairs
-          </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4" />
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              Keypairs
+            </h3>
+          </div>
+          <div className="flex gap-1.5">
             <button
               onClick={handleGenerate}
-              className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-2.5 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md transition-colors flex items-center gap-1.5"
+              title="Generate new keypair"
             >
+              <Plus className="w-3.5 h-3.5" />
               Generate
             </button>
             <button
               onClick={() => setShowImport(!showImport)}
-              className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+              className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                showImport
+                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                  : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+              }`}
+              title="Import keypair"
             >
+              <Upload className="w-3.5 h-3.5" />
               Import
             </button>
           </div>
         </div>
 
         {showImport && (
-          <div className="p-4 border border-gray-300 dark:border-gray-600 rounded-md space-y-2">
-            <input
-              type="text"
-              placeholder="Wallet name"
-              value={importName}
-              onChange={(e) => setImportName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
-            />
-            <textarea
-              placeholder="Paste keypair (base58 or JSON array)"
-              value={importValue}
-              onChange={(e) => setImportValue(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 font-mono text-sm"
-              rows={3}
-            />
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <div className="flex gap-2">
+          <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Wallet Name
+              </label>
+              <input
+                type="text"
+                placeholder="My Wallet"
+                value={importName}
+                onChange={(e) => setImportName(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Keypair
+              </label>
+              <textarea
+                placeholder="Paste keypair (base58 or JSON array)"
+                value={importValue}
+                onChange={(e) => setImportValue(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                rows={4}
+              />
+            </div>
+            {error && (
+              <div className="px-3 py-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md">
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  {error}
+                </p>
+              </div>
+            )}
+            <div className="flex gap-2 pt-1">
               <button
                 onClick={handleImport}
-                className="px-3 py-1.5 text-sm bg-green-500 text-white rounded hover:bg-green-600"
+                className="flex-1 px-3 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors"
               >
                 Import
               </button>
@@ -190,7 +225,7 @@ export function WalletManager() {
                   setImportValue("");
                   setImportName("");
                 }}
-                className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+                className="px-3 py-2 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md transition-colors"
               >
                 Cancel
               </button>
@@ -199,27 +234,33 @@ export function WalletManager() {
         )}
       </div>
 
-      {activeWallet && (
-        <div className="p-4 border border-blue-300 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/20">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="font-medium text-sm text-blue-800 dark:text-blue-200">
-                Active: {activeWallet.name}
-              </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 font-mono mt-1">
+      {activeWallet && activeWalletId !== "connected-wallet" && (
+        <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900 rounded-lg shadow-sm">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                  {activeWallet.name}
+                </p>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 font-mono mt-1 break-all">
                 {formatPublicKey(activeWallet.publicKey)}
               </p>
             </div>
             <button
               onClick={handleRefreshBalance}
-              className="px-2 py-1 text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-300 dark:hover:bg-blue-700"
+              className="ml-2 px-2 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors flex items-center gap-1 flex-shrink-0"
+              title="Refresh balance"
             >
-              Refresh
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="text-sm text-blue-700 dark:text-blue-300">
-            <span>Balance: </span>
-            <span className="font-medium">
+          <div className="flex items-center justify-between pt-3 border-t border-blue-200 dark:border-blue-900">
+            <span className="text-xs text-slate-600 dark:text-slate-400">
+              Balance
+            </span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
               {activeWallet.balance !== undefined
                 ? formatLamports(activeWallet.balance)
                 : "Loading..."}
@@ -230,62 +271,78 @@ export function WalletManager() {
 
       {allWallets.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium">All Wallets:</p>
-          {allWallets.map((wallet) => (
-            <div
-              key={wallet.id}
-              className={`p-3 border rounded-md cursor-pointer transition-colors ${
-                wallet.id === activeWalletId
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                  : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-              }`}
-              onClick={() => setActiveWallet(wallet.id)}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm">{wallet.name}</p>
-                    {wallet.type === "adapter" && (
-                      <span className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded">
-                        Connected
-                      </span>
-                    )}
-                    {wallet.type === "keypair" && (
-                      <span className="text-xs bg-gray-500 text-white px-1.5 py-0.5 rounded">
-                        Imported
-                      </span>
-                    )}
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+            All Wallets ({allWallets.length})
+          </p>
+          <div className="space-y-2">
+            {allWallets.map((wallet) => (
+              <div
+                key={wallet.id}
+                className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                  wallet.id === activeWalletId
+                    ? "border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-sm"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
+                }`}
+                onClick={() => setActiveWallet(wallet.id)}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                        {wallet.name}
+                      </p>
+                      {wallet.type === "adapter" && (
+                        <span className="text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded flex-shrink-0">
+                          Connected
+                        </span>
+                      )}
+                      {wallet.type === "keypair" && (
+                        <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded flex-shrink-0">
+                          Keypair
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono break-all">
+                      {formatPublicKey(wallet.publicKey)}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-mono mt-1">
-                    {formatPublicKey(wallet.publicKey)}
-                  </p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {wallet.id === activeWalletId && (
+                      <span className="text-xs font-medium bg-blue-600 text-white px-2 py-1 rounded">
+                        Active
+                      </span>
+                    )}
+                    {wallet.type === "keypair" &&
+                      wallet.id !== activeWalletId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImportedWallet(wallet.id);
+                          }}
+                          className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                          title="Remove wallet"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                  </div>
                 </div>
-                {wallet.id === activeWalletId && (
-                  <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
-                    Active
-                  </span>
-                )}
-                {wallet.type === "keypair" && wallet.id !== activeWalletId && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeImportedWallet(wallet.id);
-                    }}
-                    className="text-xs text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {allWallets.length === 0 && !connected && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-          Connect a wallet or import a keypair to get started.
-        </p>
+        <div className="text-center py-8">
+          <Wallet className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+            No wallets yet
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Connect a wallet or import a keypair to get started
+          </p>
+        </div>
       )}
     </div>
   );
