@@ -173,17 +173,45 @@ export function ArgumentInput({
         </button>
         {isExpanded && structDef && "fields" in structDef && (
           <div className="space-y-3 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
-            {structDef.fields.map((field: any, index: number) => (
-              <ArgumentInput
-                key={index}
-                arg={{ ...arg, type: field.type, name: field.name } as IdlField}
-                value={structValue[field.name] ?? getDefaultValue(field.type)}
-                onChange={(newFieldValue) => {
-                  onChange({ ...structValue, [field.name]: newFieldValue });
-                }}
-                idlTypes={idlTypes}
-              />
-            ))}
+            {Array.isArray(structDef.fields) &&
+              structDef.fields.map(
+                (
+                  field: { name: string; type: IdlField["type"] },
+                  index: number
+                ) => {
+                  const fieldValue =
+                    typeof structValue === "object" &&
+                    structValue !== null &&
+                    field.name in structValue
+                      ? (structValue as Record<string, unknown>)[field.name]
+                      : undefined;
+                  return (
+                    <ArgumentInput
+                      key={index}
+                      arg={
+                        {
+                          ...arg,
+                          type: field.type,
+                          name: field.name,
+                        } as IdlField
+                      }
+                      value={fieldValue ?? getDefaultValue(field.type)}
+                      onChange={(newFieldValue) => {
+                        const currentValue =
+                          typeof structValue === "object" &&
+                          structValue !== null
+                            ? (structValue as Record<string, unknown>)
+                            : {};
+                        onChange({
+                          ...currentValue,
+                          [field.name]: newFieldValue,
+                        });
+                      }}
+                      idlTypes={idlTypes}
+                    />
+                  );
+                }
+              )}
           </div>
         )}
       </div>
@@ -226,7 +254,7 @@ export function ArgumentInput({
           </label>
           <input
             type="text"
-            value={value ?? ""}
+            value={typeof value === "string" ? value : ""}
             onChange={(e) => onChange(e.target.value)}
             className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
               error
@@ -252,7 +280,7 @@ export function ArgumentInput({
           </label>
           <input
             type="text"
-            value={value ?? ""}
+            value={typeof value === "string" ? value : ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Enter public key..."
             className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 font-mono text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
@@ -278,7 +306,13 @@ export function ArgumentInput({
         </label>
         <input
           type="number"
-          value={value ?? 0}
+          value={
+            typeof value === "number"
+              ? value
+              : typeof value === "string"
+              ? Number(value) || 0
+              : 0
+          }
           onChange={(e) => {
             const num = e.target.value === "" ? 0 : Number(e.target.value);
             onChange(isNaN(num) ? 0 : num);
