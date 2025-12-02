@@ -282,7 +282,7 @@ export function IDLLoader() {
             No programs loaded
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            Click "Load IDL" to get started
+            Click &quot;Load IDL&quot; to get started
           </p>
         </div>
       )}
