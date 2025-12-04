@@ -78,7 +78,17 @@ export function parseIDL(jsonString: string): Idl {
       );
     }
 
-    return parsed as Idl;
+    // Warn if types array is missing (not required by IDL spec, but needed for Anchor)
+    const idl = parsed as Idl;
+    if (!idl.types || idl.types.length === 0) {
+      console.warn(
+        "⚠️ IDL Warning: No 'types' array found. " +
+          "If your program uses custom types (enums, structs), they should be defined in the 'types' array. " +
+          "This may cause 'Type not found' errors when executing instructions."
+      );
+    }
+
+    return idl;
   } catch (error) {
     if (error instanceof SyntaxError) {
       throw new Error(`Invalid JSON: ${error.message}`);
