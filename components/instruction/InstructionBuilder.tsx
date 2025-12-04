@@ -12,6 +12,15 @@ import { AccountInput } from "./AccountInput";
 import { ArgumentInput } from "./ArgumentInput";
 import { isValidPublicKey } from "@/lib/utils/validation";
 import { parseValue, getDefaultValue } from "@/lib/anchor/instruction";
+import { useNetworkStore } from "@/stores/networkStore";
+import { useWalletStore } from "@/stores/walletStore";
+import { createAnchorProgram } from "@/lib/anchor/program";
+import { executeInstruction } from "@/lib/executeInstruction";
+import {
+  COMMON_PROGRAMS,
+  getTokenMintAddress,
+} from "@/lib/utils/commonAddresses";
+import { Info } from "lucide-react";
 
 type IdlInstruction = Idl["instructions"][number];
 type IdlAccountItem = IdlInstruction["accounts"][number];
@@ -34,6 +43,10 @@ export function InstructionBuilder({
 }: InstructionBuilderProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showCommonAddresses, setShowCommonAddresses] = useState(false);
+  const { connection, network } = useNetworkStore();
+  const { getActiveWallet, getActiveKeypair, getActiveSigner } =
+    useWalletStore();
 
   const buildValidationSchema = () => {
     const schema: Record<string, z.ZodTypeAny> = {};
@@ -115,7 +128,24 @@ export function InstructionBuilder({
     setSubmitError(null);
 
     try {
-      const accounts: PublicKey[] = [];
+      // Validate connection
+      if (!connection) {
+        throw new Error(
+          "Not connected to network. Please connect to a network first."
+        );
+      }
+
+      // Get wallet and signer
+      const wallet = getActiveWallet();
+      const keypair = getActiveKeypair();
+      const signer = getActiveSigner();
+
+      if (!wallet && !keypair) {
+        throw new Error("No wallet connected. Please connect a wallet first.");
+      }
+
+      // Build accounts array
+      const accounts: (PublicKey | null)[] = [];
       if (instruction.accounts) {
         for (const account of instruction.accounts) {
           const accountName =
@@ -128,13 +158,14 @@ export function InstructionBuilder({
           }
 
           if (value) {
-            accounts.push(new PublicKey(value));
+            accounts.push(new PublicKey(value as string));
           } else if (isOptional) {
-            accounts.push(PublicKey.default);
+            accounts.push(null);
           }
         }
       }
 
+      // Build args array
       const args: unknown[] = [];
       if (instruction.args) {
         for (const arg of instruction.args) {
@@ -147,17 +178,36 @@ export function InstructionBuilder({
       console.log("Instruction data:", {
         program: program.programId.toString(),
         instruction: instruction.name,
-        accounts: accounts.map((a) => a.toString()),
+        accounts: accounts.map((a) => a?.toString() || "null"),
         args,
       });
 
+      // Create Anchor program instance
+      const anchorProgram = createAnchorProgram(program, connection, signer);
+
+      // Execute the instruction
+      const signature = await executeInstruction({
+        program: anchorProgram,
+        instructionName: instruction.name,
+        args,
+        accountKeys: accounts,
+        idlAccounts: instruction.accounts || [],
+        connection,
+        signer,
+        keypair,
+      });
+
+      // Show success message
       alert(
-        `Instruction prepared!\n\nAccounts: ${accounts.length}\nArguments: ${args.length}\n\nTransaction building will be implemented in Phase 4.`
+        `Transaction executed successfully!\n\nSignature: ${signature}\n\nView on Solana Explorer: https://explorer.solana.com/tx/${signature}?cluster=${program.network}`
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to build instruction";
+        error instanceof Error
+          ? error.message
+          : "Failed to execute instruction";
       setSubmitError(errorMessage);
+      console.error("Error executing instruction:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -198,7 +248,7 @@ export function InstructionBuilder({
                       className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded flex-shrink-0">
+                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
                           {index}
                         </span>
                         <div className="flex-1 min-w-0">
@@ -244,7 +294,7 @@ export function InstructionBuilder({
                     className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded flex-shrink-0">
+                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
                         {index}
                       </span>
                       <div className="flex-1 min-w-0">
@@ -271,6 +321,69 @@ export function InstructionBuilder({
                 This instruction has no accounts or arguments.
               </p>
             )}
+        </div>
+
+        {/* Common Addresses Helper Panel */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setShowCommonAddresses(!showCommonAddresses)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Common Solana Addresses
+              </span>
+            </div>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {showCommonAddresses ? "−" : "+"}
+            </span>
+          </button>
+          {showCommonAddresses && (
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    System Program
+                  </p>
+                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                    {COMMON_PROGRAMS.systemProgram}
+                  </p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Token Program
+                  </p>
+                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                    {COMMON_PROGRAMS.tokenProgram}
+                  </p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Associated Token Program
+                  </p>
+                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                    {COMMON_PROGRAMS.associatedTokenProgram}
+                  </p>
+                </div>
+                {getTokenMintAddress(network, "usdc") && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      USDC Mint ({network})
+                    </p>
+                    <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                      {getTokenMintAddress(network, "usdc")}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+                💡 Tip: Click &quot;Auto-fill&quot; buttons in account fields to
+                use these addresses automatically
+              </p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

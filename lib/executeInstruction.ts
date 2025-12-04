@@ -1,15 +1,18 @@
-import { PublicKey, Transaction } from "@solana/web3.js";
-import { Program } from "@/types/anchor";
+import { PublicKey, Transaction, Connection, Keypair } from "@solana/web3.js";
+import { Program as AnchorProgram, Idl } from "@coral-xyz/anchor";
+import { sendTransaction, TransactionSigner } from "@/lib/solana/transaction";
+
+type IdlAccountItem = Idl["instructions"][number]["accounts"][number];
 
 interface ExecuteInstructionParams {
-  program: Program;
+  program: AnchorProgram<Idl>;
   instructionName: string;
   args: unknown[];
   accountKeys: (PublicKey | null)[];
-  idlAccounts: any[];
-  connection: any;
-  publicKey: PublicKey | null;
-  sendTransaction: any;
+  idlAccounts: IdlAccountItem[];
+  connection: Connection;
+  signer: TransactionSigner | null;
+  keypair?: Keypair | null;
 }
 
 export async function executeInstruction({
@@ -19,28 +22,54 @@ export async function executeInstruction({
   accountKeys,
   idlAccounts,
   connection,
-  publicKey,
-  sendTransaction,
+  signer,
+  keypair,
 }: ExecuteInstructionParams) {
-  if (!publicKey) throw new Error("Wallet not connected");
+  if (!signer && !keypair) {
+    throw new Error("Wallet not connected");
+  }
+
+  const publicKey = signer?.publicKey || keypair?.publicKey;
+  if (!publicKey) {
+    throw new Error("No public key available");
+  }
 
   const accountObj: Record<string, PublicKey> = {};
 
-  idlAccounts.forEach((acct: any, idx: number) => {
+  idlAccounts.forEach((acct: IdlAccountItem, idx: number) => {
     const key = accountKeys[idx];
+    const accountName = typeof acct === "string" ? acct : acct.name;
 
-    if (key && !key.equals(PublicKey.default)) {
-      accountObj[acct.name] = key;
+    if (key && !key.equals(PublicKey.default) && accountName) {
+      accountObj[accountName] = key;
     }
   });
 
-  const methodBuilder = (program as any)[instructionName](...args);
+  const methods = (
+    program as unknown as {
+      methods: Record<string, (...args: unknown[]) => unknown>;
+    }
+  ).methods;
+  const method = methods[instructionName];
+  if (!method) {
+    throw new Error(`Instruction "${instructionName}" not found in program`);
+  }
 
-  const ix = await methodBuilder.accounts(accountObj).instruction();
+  const methodBuilder = method(...args) as {
+    accounts: (accounts: Record<string, PublicKey>) => {
+      instruction: () => Promise<Transaction>;
+    };
+    instruction: () => Promise<Transaction>;
+  };
 
-  const tx = new Transaction().add(ix);
+  const accountsToUse = Object.keys(accountObj).length > 0 ? accountObj : {};
+  const finalBuilder = methodBuilder.accounts(accountsToUse);
 
-  const signature = await sendTransaction(tx, connection);
+  const instruction = await finalBuilder.instruction();
+
+  const tx = new Transaction().add(instruction);
+
+  const signature = await sendTransaction(tx, connection, signer, keypair);
 
   await connection.confirmTransaction(signature, "confirmed");
 
