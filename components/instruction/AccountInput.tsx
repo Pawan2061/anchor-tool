@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Copy, Check, Wallet } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, Check, Wallet, Sparkles, Info } from "lucide-react";
 import { Idl } from "@coral-xyz/anchor";
 import { isValidPublicKey, formatPublicKey } from "@/lib/utils/validation";
 import { useWalletStore } from "@/stores/walletStore";
+import { useNetworkStore } from "@/stores/networkStore";
+import {
+  getSuggestedAddress,
+  getAccountDescription,
+} from "@/lib/utils/commonAddresses";
 
 type IdlAccountItem = Idl["instructions"][number]["accounts"][number];
 
@@ -31,6 +36,7 @@ export function AccountInput({
 }: AccountInputProps) {
   const [copied, setCopied] = useState(false);
   const { getActiveWallet } = useWalletStore();
+  const { network } = useNetworkStore();
   const activeWallet = getActiveWallet();
 
   const accountName = account.name || `Account ${index + 1}`;
@@ -38,9 +44,35 @@ export function AccountInput({
   const isOptional = isIdlAccount(account) && account.isOptional;
   const isMutable = isIdlAccount(account) && account.isMut;
 
+  const suggestedAddress = accountName
+    ? getSuggestedAddress(accountName, network)
+    : null;
+  const description = accountName ? getAccountDescription(accountName) : null;
+
+  useEffect(() => {
+    if (!value && suggestedAddress && accountName) {
+      const lowerName = accountName.toLowerCase();
+      if (
+        lowerName === "system_program" ||
+        lowerName === "systemprogram" ||
+        (lowerName.includes("token_program") && !lowerName.includes("mint")) ||
+        lowerName.includes("associated_token")
+      ) {
+        onChange(suggestedAddress);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleUseActiveWallet = () => {
     if (activeWallet) {
       onChange(activeWallet.publicKey.toString());
+    }
+  };
+
+  const handleUseSuggested = () => {
+    if (suggestedAddress) {
+      onChange(suggestedAddress);
     }
   };
 
@@ -75,23 +107,48 @@ export function AccountInput({
             )}
           </span>
         </label>
-        {isSigner && activeWallet && (
-          <button
-            type="button"
-            onClick={handleUseActiveWallet}
-            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-          >
-            <Wallet className="w-3 h-3" />
-            Use Active
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {suggestedAddress && !value && (
+            <button
+              type="button"
+              onClick={handleUseSuggested}
+              className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1"
+              title={`Use ${accountName} address`}
+            >
+              <Sparkles className="w-3 h-3" />
+              Auto-fill
+            </button>
+          )}
+          {isSigner && activeWallet && (
+            <button
+              type="button"
+              onClick={handleUseActiveWallet}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
+            >
+              <Wallet className="w-3 h-3" />
+              Use Active
+            </button>
+          )}
+        </div>
       </div>
+      {description && (
+        <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
+          <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-blue-700 dark:text-blue-300">
+            {description}
+          </p>
+        </div>
+      )}
       <div className="relative">
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter public key..."
+          placeholder={
+            suggestedAddress
+              ? `Enter public key or use auto-fill...`
+              : "Enter public key..."
+          }
           className={`w-full px-3 py-2 pr-20 border rounded-md bg-white dark:bg-slate-950 font-mono text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
             error
               ? "border-red-300 dark:border-red-700"

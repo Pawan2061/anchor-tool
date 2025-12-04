@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Info } from "lucide-react";
 import { Idl } from "@coral-xyz/anchor";
 import {
   isArrayType,
@@ -12,6 +13,10 @@ import {
   typeToString,
   getDefaultValue,
 } from "@/lib/anchor/instruction";
+import {
+  getArgumentDescription,
+  getArgumentPlaceholder,
+} from "@/lib/utils/argumentHelpers";
 
 type IdlField = Idl["instructions"][number]["args"][number];
 
@@ -33,6 +38,9 @@ export function ArgumentInput({
   const [isExpanded, setIsExpanded] = useState(false);
   const type = arg.type;
   const argName = arg.name || "argument";
+  const typeString = typeof type === "string" ? type : typeToString(type);
+  const description = getArgumentDescription(argName, typeString);
+  const placeholder = getArgumentPlaceholder(argName, typeString);
 
   if (isOptionType(type)) {
     const baseType = getOptionBaseType(type);
@@ -252,10 +260,19 @@ export function ArgumentInput({
               (string)
             </span>
           </label>
+          {description && (
+            <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
+              <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                {description}
+              </p>
+            </div>
+          )}
           <input
             type="text"
             value={typeof value === "string" ? value : ""}
             onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
             className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
               error
                 ? "border-red-300 dark:border-red-700"
@@ -304,6 +321,14 @@ export function ArgumentInput({
             ({type})
           </span>
         </label>
+        {description && (
+          <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
+            <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              {description}
+            </p>
+          </div>
+        )}
         <input
           type="number"
           value={
@@ -317,6 +342,7 @@ export function ArgumentInput({
             const num = e.target.value === "" ? 0 : Number(e.target.value);
             onChange(isNaN(num) ? 0 : num);
           }}
+          placeholder={placeholder}
           className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
             error
               ? "border-red-300 dark:border-red-700"
