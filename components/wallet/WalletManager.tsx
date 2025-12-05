@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Wallet, Plus, Upload, RefreshCw, X, CheckCircle2 } from "lucide-react";
+import {
+  Wallet,
+  Plus,
+  Upload,
+  RefreshCw,
+  X,
+  CheckCircle2,
+  ExternalLink,
+} from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useWalletStore } from "@/stores/walletStore";
@@ -80,41 +88,42 @@ export function WalletManager() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Wallet className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+          <ExternalLink className="w-4 h-4 text-[var(--foreground-muted)]" />
+          <h3 className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-wide">
             External Wallet
           </h3>
         </div>
+
         {connected && publicKey ? (
-          <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+          <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)]">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                  <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                  <CheckCircle2 className="w-4 h-4 text-[var(--success)] flex-shrink-0" />
+                  <p className="font-semibold text-sm text-[var(--foreground)] truncate">
                     {connectedWallet?.name || "Connected Wallet"}
                   </p>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1 break-all">
+                <p className="text-xs text-[var(--foreground-muted)] font-mono mt-1">
                   {formatPublicKey(publicKey)}
                 </p>
               </div>
               <button
                 onClick={disconnect}
-                className="ml-2 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors flex-shrink-0"
+                className="ml-2 p-2 rounded-lg text-[var(--foreground-muted)] hover:text-[var(--error)] hover:bg-[var(--error-subtle)] transition-colors"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             {connectedWallet && (
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-xs text-slate-600 dark:text-slate-400">
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                <span className="text-xs text-[var(--foreground-muted)]">
                   Balance
                 </span>
-                <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                <span className="text-sm font-bold text-[var(--foreground)]">
                   {connectedWallet.balance !== undefined
                     ? formatLamports(connectedWallet.balance)
                     : "Loading..."}
@@ -124,21 +133,21 @@ export function WalletManager() {
             {activeWalletId !== "connected-wallet" && (
               <button
                 onClick={() => setActiveWallet("connected-wallet")}
-                className="mt-3 w-full px-3 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                className="mt-3 w-full px-3 py-2.5 text-xs font-semibold rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors"
               >
                 Set as Active
               </button>
             )}
             {activeWalletId === "connected-wallet" && (
-              <div className="mt-3 px-3 py-1.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-center">
-                Active Wallet
+              <div className="mt-3 px-3 py-2 text-xs font-semibold rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] text-center">
+                ✓ Active Wallet
               </div>
             )}
           </div>
         ) : (
           <button
             onClick={() => setVisible(true)}
-            className="w-full px-4 py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2"
+            className="w-full px-4 py-3.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
           >
             <Wallet className="w-4 h-4" />
             Connect Wallet
@@ -149,15 +158,15 @@ export function WalletManager() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+            <Wallet className="w-4 h-4 text-[var(--foreground-muted)]" />
+            <h3 className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-wide">
               Keypairs
             </h3>
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             <button
               onClick={handleGenerate}
-              className="px-2.5 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--background-secondary)] text-[var(--foreground)] hover:bg-[var(--surface-hover)] border border-[var(--border)] transition-all flex items-center gap-1.5"
               title="Generate new keypair"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -165,10 +174,10 @@ export function WalletManager() {
             </button>
             <button
               onClick={() => setShowImport(!showImport)}
-              className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                 showImport
-                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                  : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                  ? "bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent)]"
+                  : "bg-[var(--background-secondary)] text-[var(--foreground)] hover:bg-[var(--surface-hover)] border border-[var(--border)]"
               }`}
               title="Import keypair"
             >
@@ -179,9 +188,9 @@ export function WalletManager() {
         </div>
 
         {showImport && (
-          <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-3">
+          <div className="p-4 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)] space-y-4 animate-slide-up">
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--foreground-muted)] mb-2">
                 Wallet Name
               </label>
               <input
@@ -189,32 +198,30 @@ export function WalletManager() {
                 placeholder="My Wallet"
                 value={importName}
                 onChange={(e) => setImportName(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--background-secondary)] border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Keypair
+              <label className="block text-xs font-semibold text-[var(--foreground-muted)] mb-2">
+                Keypair (Base58 or JSON)
               </label>
               <textarea
-                placeholder="Paste keypair (base58 or JSON array)"
+                placeholder="Paste keypair..."
                 value={importValue}
                 onChange={(e) => setImportValue(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--background-secondary)] border border-[var(--border)] font-mono text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all resize-none"
                 rows={4}
               />
             </div>
             {error && (
-              <div className="px-3 py-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md">
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  {error}
-                </p>
+              <div className="px-3 py-2.5 rounded-lg bg-[var(--error-subtle)] border border-[var(--error)]/20">
+                <p className="text-xs text-[var(--error)]">{error}</p>
               </div>
             )}
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2">
               <button
                 onClick={handleImport}
-                className="flex-1 px-3 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors"
+                className="flex-1 px-3 py-2.5 text-xs font-semibold rounded-lg bg-[var(--success)] hover:bg-emerald-600 text-white transition-colors"
               >
                 Import
               </button>
@@ -225,7 +232,7 @@ export function WalletManager() {
                   setImportValue("");
                   setImportName("");
                 }}
-                className="px-3 py-2 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md transition-colors"
+                className="px-4 py-2.5 text-xs font-semibold rounded-lg bg-[var(--background-secondary)] text-[var(--foreground)] hover:bg-[var(--surface-hover)] border border-[var(--border)] transition-colors"
               >
                 Cancel
               </button>
@@ -235,32 +242,32 @@ export function WalletManager() {
       </div>
 
       {activeWallet && activeWalletId !== "connected-wallet" && (
-        <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900 rounded-lg shadow-sm">
+        <div className="p-4 rounded-xl bg-[var(--accent-subtle)] border border-[var(--accent)]/20">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                <CheckCircle2 className="w-4 h-4 text-[var(--accent)] flex-shrink-0" />
+                <p className="font-semibold text-sm text-[var(--foreground)] truncate">
                   {activeWallet.name}
                 </p>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-mono mt-1 break-all">
+              <p className="text-xs text-[var(--foreground-muted)] font-mono mt-1">
                 {formatPublicKey(activeWallet.publicKey)}
               </p>
             </div>
             <button
               onClick={handleRefreshBalance}
-              className="ml-2 px-2 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors flex items-center gap-1 flex-shrink-0"
+              className="ml-2 p-2 rounded-lg text-[var(--accent)] hover:bg-[var(--accent-subtle)] transition-colors"
               title="Refresh balance"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex items-center justify-between pt-3 border-t border-blue-200 dark:border-blue-900">
-            <span className="text-xs text-slate-600 dark:text-slate-400">
+          <div className="flex items-center justify-between pt-3 border-t border-[var(--accent)]/20">
+            <span className="text-xs text-[var(--foreground-muted)]">
               Balance
             </span>
-            <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+            <span className="text-sm font-bold text-[var(--foreground)]">
               {activeWallet.balance !== undefined
                 ? formatLamports(activeWallet.balance)
                 : "Loading..."}
@@ -270,46 +277,46 @@ export function WalletManager() {
       )}
 
       {allWallets.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-wide">
             All Wallets ({allWallets.length})
           </p>
           <div className="space-y-2">
             {allWallets.map((wallet) => (
               <div
                 key={wallet.id}
-                className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                className={`p-3 rounded-xl cursor-pointer transition-all ${
                   wallet.id === activeWalletId
-                    ? "border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-sm"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
+                    ? "bg-[var(--accent-subtle)] border-2 border-[var(--accent)]"
+                    : "bg-[var(--surface-elevated)] border border-[var(--border)] hover:border-[var(--foreground-muted)]"
                 }`}
                 onClick={() => setActiveWallet(wallet.id)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                      <p className="font-semibold text-sm text-[var(--foreground)] truncate">
                         {wallet.name}
                       </p>
                       {wallet.type === "adapter" && (
-                        <span className="text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded flex-shrink-0">
-                          Connected
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--success-subtle)] text-[var(--success)]">
+                          EXTERNAL
                         </span>
                       )}
                       {wallet.type === "keypair" && (
-                        <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded flex-shrink-0">
-                          Keypair
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--background-secondary)] text-[var(--foreground-muted)]">
+                          KEYPAIR
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono break-all">
+                    <p className="text-xs text-[var(--foreground-muted)] font-mono">
                       {formatPublicKey(wallet.publicKey)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {wallet.id === activeWalletId && (
-                      <span className="text-xs font-medium bg-blue-600 text-white px-2 py-1 rounded">
-                        Active
+                      <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[var(--accent)] text-white">
+                        ACTIVE
                       </span>
                     )}
                     {wallet.type === "keypair" &&
@@ -319,7 +326,7 @@ export function WalletManager() {
                             e.stopPropagation();
                             removeImportedWallet(wallet.id);
                           }}
-                          className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                          className="p-1.5 rounded-lg text-[var(--foreground-muted)] hover:text-[var(--error)] hover:bg-[var(--error-subtle)] transition-colors"
                           title="Remove wallet"
                         >
                           <X className="w-4 h-4" />
@@ -334,13 +341,15 @@ export function WalletManager() {
       )}
 
       {allWallets.length === 0 && !connected && (
-        <div className="text-center py-8">
-          <Wallet className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--background-secondary)] flex items-center justify-center mx-auto mb-4">
+            <Wallet className="w-8 h-8 text-[var(--foreground-muted)]" />
+          </div>
+          <p className="text-sm font-semibold text-[var(--foreground)] mb-1">
             No wallets yet
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Connect a wallet or import a keypair to get started
+          <p className="text-xs text-[var(--foreground-muted)]">
+            Connect a wallet or generate a keypair
           </p>
         </div>
       )}
