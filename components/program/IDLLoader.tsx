@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { FileCode, Plus, X, Loader2 } from "lucide-react";
+import { FileCode, Plus, X, Upload, CheckCircle2, Layers } from "lucide-react";
 import { PublicKey } from "@solana/web3.js";
 import { useProgramStore } from "@/stores/programStore";
 import { useNetworkStore } from "@/stores/networkStore";
@@ -106,20 +106,20 @@ export function IDLLoader() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileCode className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+          <Layers className="w-4 h-4 text-[var(--foreground-muted)]" />
+          <h3 className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-wide">
             Programs
           </h3>
         </div>
         <button
           onClick={() => setShowLoader(!showLoader)}
-          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
             showLoader
-              ? "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
+              ? "bg-[var(--background-secondary)] text-[var(--foreground)] hover:bg-[var(--surface-hover)] border border-[var(--border)]"
+              : "bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white"
           }`}
         >
           {showLoader ? (
@@ -137,9 +137,9 @@ export function IDLLoader() {
       </div>
 
       {showLoader && (
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-4">
+        <div className="p-5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)] space-y-4 animate-slide-up">
           <div>
-            <label className="block text-xs font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-semibold text-[var(--foreground-muted)] mb-2">
               Program Name
             </label>
             <input
@@ -147,12 +147,12 @@ export function IDLLoader() {
               placeholder="My Program"
               value={programName}
               onChange={(e) => setProgramName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--background-secondary)] border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-semibold text-[var(--foreground-muted)] mb-2">
               Program ID
             </label>
             <input
@@ -160,12 +160,12 @@ export function IDLLoader() {
               placeholder="Program public key"
               value={programId}
               onChange={(e) => setProgramId(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--background-secondary)] border border-[var(--border)] font-mono text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-semibold text-[var(--foreground-muted)] mb-2">
               IDL File
             </label>
             <div className="relative">
@@ -174,13 +174,21 @@ export function IDLLoader() {
                 type="file"
                 accept=".json"
                 onChange={handleFileSelect}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 text-xs text-slate-600 dark:text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-300 hover:file:bg-slate-200 dark:hover:file:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="hidden"
+                id="idl-file-input"
               />
+              <label
+                htmlFor="idl-file-input"
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-[var(--background-secondary)] border-2 border-dashed border-[var(--border)] text-sm text-[var(--foreground-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition-all"
+              >
+                <Upload className="w-4 h-4" />
+                {idlJson ? "File loaded ✓" : "Choose IDL file..."}
+              </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1.5 text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-semibold text-[var(--foreground-muted)] mb-2">
               Or Paste IDL JSON
             </label>
             <textarea
@@ -190,28 +198,28 @@ export function IDLLoader() {
                 setIdlJson(e.target.value);
                 setError("");
               }}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              rows={8}
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--background-secondary)] border border-[var(--border)] font-mono text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all resize-none"
+              rows={6}
             />
           </div>
 
           {error && (
-            <div className="px-3 py-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md">
-              <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <div className="px-3 py-2.5 rounded-lg bg-[var(--error-subtle)] border border-[var(--error)]/20">
+              <p className="text-xs text-[var(--error)]">{error}</p>
             </div>
           )}
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-2">
             <button
               onClick={handleLoad}
-              className="flex-1 px-4 py-2.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 text-sm font-semibold rounded-xl bg-[var(--success)] hover:bg-emerald-600 text-white transition-colors flex items-center justify-center gap-2"
             >
-              <Loader2 className="w-3.5 h-3.5" />
+              <CheckCircle2 className="w-4 h-4" />
               Load Program
             </button>
             <button
               onClick={handleCancel}
-              className="px-4 py-2.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md transition-colors"
+              className="px-4 py-3 text-sm font-semibold rounded-xl bg-[var(--background-secondary)] text-[var(--foreground)] hover:bg-[var(--surface-hover)] border border-[var(--border)] transition-colors"
             >
               Cancel
             </button>
@@ -220,41 +228,45 @@ export function IDLLoader() {
       )}
 
       {programs.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-wide">
             Loaded Programs ({programs.length})
           </p>
           <div className="space-y-2">
             {programs.map((program) => (
               <div
                 key={program.id}
-                className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                className={`p-3 rounded-xl cursor-pointer transition-all ${
                   program.id === activeProgramId
-                    ? "border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-sm"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
+                    ? "bg-[var(--accent-subtle)] border-2 border-[var(--accent)]"
+                    : "bg-[var(--surface-elevated)] border border-[var(--border)] hover:border-[var(--foreground-muted)]"
                 }`}
                 onClick={() => setActiveProgram(program.id)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                      <p className="font-semibold text-sm text-[var(--foreground)] truncate">
                         {program.name}
                       </p>
                       {program.id === activeProgramId && (
-                        <span className="text-xs font-medium bg-blue-600 text-white px-2 py-0.5 rounded flex-shrink-0">
-                          Active
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-[var(--accent)] text-white">
+                          ACTIVE
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono break-all">
+                    <p className="text-xs text-[var(--foreground-muted)] font-mono mb-2">
                       {program.programId.toString().slice(0, 8)}...
-                      {program.programId.toString().slice(-8)}
+                      {program.programId.toString().slice(-6)}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1.5">
-                      {getInstructionCount(program.idl)} instructions •{" "}
-                      <span className="capitalize">{program.network}</span>
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--background-secondary)] text-[var(--foreground-muted)]">
+                        {getInstructionCount(program.idl)} instructions
+                      </span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--background-secondary)] text-[var(--foreground-muted)] capitalize">
+                        {program.network}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={(e) => {
@@ -263,7 +275,7 @@ export function IDLLoader() {
                         removeProgram(program.id);
                       }
                     }}
-                    className="ml-2 p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex-shrink-0"
+                    className="ml-2 p-1.5 rounded-lg text-[var(--foreground-muted)] hover:text-[var(--error)] hover:bg-[var(--error-subtle)] transition-colors flex-shrink-0"
                     title="Remove program"
                   >
                     <X className="w-4 h-4" />
@@ -276,12 +288,14 @@ export function IDLLoader() {
       )}
 
       {programs.length === 0 && !showLoader && (
-        <div className="text-center py-8">
-          <FileCode className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--background-secondary)] flex items-center justify-center mx-auto mb-4">
+            <FileCode className="w-8 h-8 text-[var(--foreground-muted)]" />
+          </div>
+          <p className="text-sm font-semibold text-[var(--foreground)] mb-1">
             No programs loaded
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-[var(--foreground-muted)]">
             Click &quot;Load IDL&quot; to get started
           </p>
         </div>

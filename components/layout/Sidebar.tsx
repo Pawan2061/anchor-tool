@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Wallet, FileCode, FolderKanban } from "lucide-react";
+import { Wallet, FileCode, FolderKanban, Terminal } from "lucide-react";
 import { NetworkSelector } from "@/components/network/NetworkSelector";
 import { WalletManager } from "@/components/wallet/WalletManager";
 import { IDLLoader } from "@/components/program/IDLLoader";
@@ -11,70 +11,92 @@ type SidebarTab = "wallet" | "programs" | "collections";
 const tabs = [
   { id: "wallet" as SidebarTab, label: "Wallet", icon: Wallet },
   { id: "programs" as SidebarTab, label: "Programs", icon: FileCode },
-  { id: "collections" as SidebarTab, label: "Collections", icon: FolderKanban },
+  { id: "collections" as SidebarTab, label: "History", icon: FolderKanban },
 ];
 
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState<SidebarTab>("wallet");
 
   return (
-    <div className="w-[320px] border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 h-screen flex flex-col shadow-sm">
-      <div className="p-5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AP</span>
+    <aside className="w-[320px] h-screen flex flex-col border-r border-[var(--border)] bg-[var(--surface)]">
+      {/* Header */}
+      <header className="p-5 border-b border-[var(--border)]">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-lg bg-[var(--accent)] flex items-center justify-center">
+            <Terminal className="w-5 h-5 text-white" strokeWidth={2.5} />
           </div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-            Anchor Postman
-          </h1>
+          <div>
+            <h1 className="text-base font-bold text-[var(--foreground)] tracking-tight">
+              Anchor Postman
+            </h1>
+            <p className="text-xs text-[var(--foreground-muted)]">
+              Solana Program Tester
+            </p>
+          </div>
         </div>
         <NetworkSelector />
-      </div>
+      </header>
 
-      <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      {/* Tab Navigation */}
+      <nav className="flex gap-1 p-2 border-b border-[var(--border)] bg-[var(--background-secondary)]">
         {tabs.map((tab) => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-3 py-3 text-xs font-medium capitalize transition-all relative group ${
-                activeTab === tab.id
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+              className={`flex-1 relative px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                isActive
+                  ? "text-[var(--accent)] bg-[var(--surface)]"
+                  : "text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
               }`}
             >
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-1.5">
                 <Icon
-                  className={`w-4 h-4 transition-transform ${
-                    activeTab === tab.id ? "scale-110" : ""
+                  className={`w-4 h-4 transition-transform duration-200 ${
+                    isActive ? "scale-110" : ""
                   }`}
+                  strokeWidth={isActive ? 2.5 : 2}
                 />
                 <span>{tab.label}</span>
               </div>
-              {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+              {isActive && (
+                <div className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[var(--accent)]" />
               )}
             </button>
           );
         })}
+      </nav>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-5">
+        <div className="animate-fade-in">
+          {activeTab === "wallet" && <WalletManager />}
+          {activeTab === "programs" && <IDLLoader />}
+          {activeTab === "collections" && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 rounded-xl bg-[var(--background-secondary)] flex items-center justify-center mb-4">
+                <FolderKanban className="w-8 h-8 text-[var(--foreground-muted)]" />
+              </div>
+              <p className="text-sm font-semibold text-[var(--foreground)] mb-1">
+                No history yet
+              </p>
+              <p className="text-xs text-[var(--foreground-muted)] max-w-[200px]">
+                Your recent transactions and saved requests will appear here
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 bg-slate-50 dark:bg-slate-950">
-        {activeTab === "wallet" && <WalletManager />}
-        {activeTab === "programs" && <IDLLoader />}
-        {activeTab === "collections" && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <FolderKanban className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-3" />
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
-              No collections yet
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-500">
-              Save requests to create collections
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+      {/* Footer */}
+      <footer className="p-4 border-t border-[var(--border)] bg-[var(--background-secondary)]">
+        <div className="flex items-center justify-center gap-2 text-xs text-[var(--foreground-muted)]">
+          <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+          <span>Ready</span>
+        </div>
+      </footer>
+    </aside>
   );
 }

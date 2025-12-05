@@ -4,7 +4,18 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Code2, Users, FileText, Send, Loader2 } from "lucide-react";
+import {
+  Code2,
+  Users,
+  FileText,
+  Send,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Zap,
+  BookOpen,
+  Anchor,
+} from "lucide-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program } from "@/types/anchor";
 import { Idl } from "@coral-xyz/anchor";
@@ -20,7 +31,6 @@ import {
   COMMON_PROGRAMS,
   getTokenMintAddress,
 } from "@/lib/utils/commonAddresses";
-import { Info } from "lucide-react";
 
 type IdlInstruction = Idl["instructions"][number];
 type IdlAccountItem = IdlInstruction["accounts"][number];
@@ -44,6 +54,7 @@ export function InstructionBuilder({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showCommonAddresses, setShowCommonAddresses] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const { connection, network } = useNetworkStore();
   const { getActiveWallet, getActiveKeypair, getActiveSigner } =
     useWalletStore();
@@ -75,7 +86,14 @@ export function InstructionBuilder({
 
     if (instruction.args) {
       instruction.args.forEach((arg) => {
-        const argName = arg.name || `arg_${instruction.args!.indexOf(arg)}`;
+        const argName =
+          typeof arg.name === "string"
+            ? arg.name
+            : typeof arg.name === "object" &&
+              arg.name !== null &&
+              "name" in arg.name
+            ? (arg.name as { name: string }).name
+            : `arg_${instruction.args!.indexOf(arg)}`;
         const type = arg.type;
 
         if (typeof type === "string") {
@@ -114,7 +132,14 @@ export function InstructionBuilder({
         defaults[accountName] = "";
       });
       instruction.args?.forEach((arg) => {
-        const argName = arg.name || `arg_${instruction.args!.indexOf(arg)}`;
+        const argName =
+          typeof arg.name === "string"
+            ? arg.name
+            : typeof arg.name === "object" &&
+              arg.name !== null &&
+              "name" in arg.name
+            ? (arg.name as { name: string }).name
+            : `arg_${instruction.args!.indexOf(arg)}`;
         defaults[argName] = getDefaultValue(arg.type);
       });
       return defaults;
@@ -128,14 +153,12 @@ export function InstructionBuilder({
     setSubmitError(null);
 
     try {
-      // Validate connection
       if (!connection) {
         throw new Error(
           "Not connected to network. Please connect to a network first."
         );
       }
 
-      // Get wallet and signer
       const wallet = getActiveWallet();
       const keypair = getActiveKeypair();
       const signer = getActiveSigner();
@@ -144,7 +167,6 @@ export function InstructionBuilder({
         throw new Error("No wallet connected. Please connect a wallet first.");
       }
 
-      // Build accounts array
       const accounts: (PublicKey | null)[] = [];
       if (instruction.accounts) {
         for (const account of instruction.accounts) {
@@ -165,7 +187,6 @@ export function InstructionBuilder({
         }
       }
 
-      // Build args array
       const args: unknown[] = [];
       if (instruction.args) {
         for (const arg of instruction.args) {
@@ -182,10 +203,8 @@ export function InstructionBuilder({
         args,
       });
 
-      // Create Anchor program instance
       const anchorProgram = createAnchorProgram(program, connection, signer);
 
-      // Execute the instruction
       const signature = await executeInstruction({
         program: anchorProgram,
         instructionName: instruction.name,
@@ -197,7 +216,6 @@ export function InstructionBuilder({
         keypair,
       });
 
-      // Show success message
       alert(
         `Transaction executed successfully!\n\nSignature: ${signature}\n\nView on Solana Explorer: https://explorer.solana.com/tx/${signature}?cluster=${program.network}`
       );
@@ -214,269 +232,341 @@ export function InstructionBuilder({
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Code2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-              {instruction.name}
-            </h2>
+    <div className="min-h-full bg-[var(--background)]">
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <div className="mb-8 animate-slide-up">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-12 h-12 rounded-lg bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
+              <Code2 className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">
+                {instruction.name}
+              </h2>
+              <p className="text-sm text-[var(--foreground-muted)] mt-1">
+                Build and execute this instruction on {program.network}
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400 ml-9">
-            Build and execute this instruction
-          </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm">
-          <h3 className="text-base font-semibold mb-5 text-slate-900 dark:text-slate-50 flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Instruction Details
-          </h3>
+        <div
+          className="mb-6 animate-slide-up"
+          style={{ animationDelay: "0.05s" }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowDetails(!showDetails)}
+            className="w-full flex items-center justify-between p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen className="w-5 h-5 text-[var(--foreground-muted)] group-hover:text-[var(--accent)] transition-colors" />
+              <span className="font-semibold text-sm text-[var(--foreground)]">
+                Instruction Details
+              </span>
+              <span className="px-2 py-0.5 text-xs rounded-md bg-[var(--background-secondary)] text-[var(--foreground-muted)]">
+                {instruction.accounts?.length || 0} accounts •{" "}
+                {instruction.args?.length || 0} args
+              </span>
+            </div>
+            {showDetails ? (
+              <ChevronUp className="w-5 h-5 text-[var(--foreground-muted)]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[var(--foreground-muted)]" />
+            )}
+          </button>
 
-          {instruction.accounts && instruction.accounts.length > 0 && (
-            <div className="mb-6">
-              <h4 className="text-xs font-semibold mb-3 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                <Users className="w-3.5 h-3.5" />
-                Accounts ({instruction.accounts.length})
-              </h4>
-              <div className="space-y-2">
-                {instruction.accounts.map(
-                  (account: IdlAccountItem, index: number) => (
-                    <div
-                      key={index}
-                      className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
-                          {index}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-slate-900 dark:text-slate-50">
+          {showDetails && (
+            <div className="mt-3 p-5 rounded-xl bg-[var(--surface)] border border-[var(--border)] animate-slide-up">
+              {instruction.accounts && instruction.accounts.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="w-4 h-4 text-[var(--accent)]" />
+                    <h4 className="text-sm font-semibold text-[var(--foreground)]">
+                      Required Accounts
+                    </h4>
+                  </div>
+                  <div className="grid gap-2">
+                    {instruction.accounts.map(
+                      (account: IdlAccountItem, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-[var(--background-secondary)]"
+                        >
+                          <span className="w-6 h-6 rounded-md bg-[var(--surface)] text-xs font-mono flex items-center justify-center text-[var(--foreground-muted)]">
+                            {index}
+                          </span>
+                          <span className="font-medium text-sm text-[var(--foreground)]">
                             {account.name || `Account ${index + 1}`}
-                          </p>
-                          <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                          </span>
+                          <div className="flex gap-1.5 ml-auto">
                             {isIdlAccount(account) && account.isMut && (
-                              <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
-                                Mutable
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--info-subtle)] text-[var(--info)]">
+                                MUT
                               </span>
                             )}
                             {isIdlAccount(account) && account.isSigner && (
-                              <span className="text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
-                                Signer
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--success-subtle)] text-[var(--success)]">
+                                SIGNER
                               </span>
                             )}
                             {isIdlAccount(account) && account.isOptional && (
-                              <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded">
-                                Optional
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--warning-subtle)] text-[var(--warning)]">
+                                OPT
                               </span>
                             )}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          )}
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
 
-          {instruction.args && instruction.args.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold mb-3 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5" />
-                Arguments ({instruction.args.length})
-              </h4>
-              <div className="space-y-2">
-                {instruction.args.map((arg: IdlField, index: number) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
-                        {index}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-slate-900 dark:text-slate-50">
-                          {arg.name || `Argument ${index + 1}`}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono break-all">
-                          Type:{" "}
+              {instruction.args && instruction.args.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="w-4 h-4 text-[var(--accent)]" />
+                    <h4 className="text-sm font-semibold text-[var(--foreground)]">
+                      Arguments
+                    </h4>
+                  </div>
+                  <div className="grid gap-2">
+                    {instruction.args.map((arg: IdlField, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-[var(--background-secondary)]"
+                      >
+                        <span className="w-6 h-6 rounded-md bg-[var(--surface)] text-xs font-mono flex items-center justify-center text-[var(--foreground-muted)]">
+                          {index}
+                        </span>
+                        <span className="font-medium text-sm text-[var(--foreground)]">
+                          {typeof arg.name === "string"
+                            ? arg.name
+                            : typeof arg.name === "object" &&
+                              arg.name !== null &&
+                              "name" in arg.name
+                            ? (arg.name as { name: string }).name
+                            : `Argument ${index + 1}`}
+                        </span>
+                        <code className="ml-auto text-xs px-2 py-1 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
                           {typeof arg.type === "string"
                             ? arg.type
                             : JSON.stringify(arg.type)}
-                        </p>
+                        </code>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {(!instruction.accounts || instruction.accounts.length === 0) &&
+                (!instruction.args || instruction.args.length === 0) && (
+                  <p className="text-sm text-[var(--foreground-muted)] text-center py-4">
+                    This instruction has no accounts or arguments.
+                  </p>
+                )}
             </div>
           )}
-
-          {(!instruction.accounts || instruction.accounts.length === 0) &&
-            (!instruction.args || instruction.args.length === 0) && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
-                This instruction has no accounts or arguments.
-              </p>
-            )}
         </div>
-
-        {/* Common Addresses Helper Panel */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+        <div
+          className="mb-6 animate-slide-up"
+          style={{ animationDelay: "0.1s" }}
+        >
           <button
             type="button"
             onClick={() => setShowCommonAddresses(!showCommonAddresses)}
-            className="w-full flex items-center justify-between text-left"
+            className="w-full flex items-center justify-between p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors group"
           >
-            <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Common Solana Addresses
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-[var(--warning)] group-hover:text-[var(--accent)] transition-colors" />
+              <span className="font-semibold text-sm text-[var(--foreground)]">
+                Common Addresses
               </span>
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {showCommonAddresses ? "−" : "+"}
-            </span>
+            {showCommonAddresses ? (
+              <ChevronUp className="w-5 h-5 text-[var(--foreground-muted)]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[var(--foreground-muted)]" />
+            )}
           </button>
+
           {showCommonAddresses && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-3 p-5 rounded-xl bg-[var(--surface)] border border-[var(--border)] animate-slide-up">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                    System Program
-                  </p>
-                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
-                    {COMMON_PROGRAMS.systemProgram}
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                    Token Program
-                  </p>
-                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
-                    {COMMON_PROGRAMS.tokenProgram}
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                    Associated Token Program
-                  </p>
-                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
-                    {COMMON_PROGRAMS.associatedTokenProgram}
-                  </p>
-                </div>
-                {getTokenMintAddress(network, "usdc") && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                      USDC Mint ({network})
+                {[
+                  {
+                    name: "System Program",
+                    address: COMMON_PROGRAMS.systemProgram,
+                  },
+                  {
+                    name: "Token Program",
+                    address: COMMON_PROGRAMS.tokenProgram,
+                  },
+                  {
+                    name: "Associated Token",
+                    address: COMMON_PROGRAMS.associatedTokenProgram,
+                  },
+                  ...(getTokenMintAddress(network, "usdc")
+                    ? [
+                        {
+                          name: `USDC (${network})`,
+                          address: getTokenMintAddress(network, "usdc")!,
+                        },
+                      ]
+                    : []),
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    className="p-3 rounded-lg bg-[var(--background-secondary)] group cursor-pointer hover:bg-[var(--surface-hover)] transition-colors"
+                    onClick={() => navigator.clipboard.writeText(item.address)}
+                    title="Click to copy"
+                  >
+                    <p className="text-xs font-semibold text-[var(--foreground-muted)] mb-1.5">
+                      {item.name}
                     </p>
-                    <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
-                      {getTokenMintAddress(network, "usdc")}
+                    <p className="text-xs font-mono text-[var(--foreground)] break-all leading-relaxed group-hover:text-[var(--accent)] transition-colors">
+                      {item.address}
                     </p>
                   </div>
-                )}
+                ))}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-                💡 Tip: Click &quot;Auto-fill&quot; buttons in account fields to
-                use these addresses automatically
+              <p className="text-xs text-[var(--foreground-muted)] mt-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+                Click any address to copy • Use Auto-fill buttons in form fields
               </p>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm">
-            <h3 className="text-base font-semibold mb-5 text-slate-900 dark:text-slate-50 flex items-center gap-2">
-              <Code2 className="w-4 h-4" />
-              Build Transaction
-            </h3>
-
-            {instruction.accounts && instruction.accounts.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-xs font-semibold mb-4 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5" />
-                  Accounts ({instruction.accounts.length})
-                </h4>
-                <div className="space-y-4">
-                  {instruction.accounts.map((account, index) => {
-                    const accountName = account.name || `account_${index}`;
-                    return (
-                      <AccountInput
-                        key={index}
-                        account={account}
-                        index={index}
-                        value={(formValues[accountName] as string) || ""}
-                        onChange={(value) => setValue(accountName, value)}
-                        error={
-                          errors[accountName]?.message as string | undefined
-                        }
-                      />
-                    );
-                  })}
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="animate-slide-up"
+          style={{ animationDelay: "0.15s" }}
+        >
+          <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--background-secondary)]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] flex items-center justify-center">
+                  <Send className="w-4 h-4 text-[var(--accent)]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--foreground)]">
+                    Build Transaction
+                  </h3>
+                  <p className="text-xs text-[var(--foreground-muted)]">
+                    Fill in the required fields and execute
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
 
-            {instruction.args && instruction.args.length > 0 && (
-              <div>
-                <h4 className="text-xs font-semibold mb-4 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                  <FileText className="w-3.5 h-3.5" />
-                  Arguments ({instruction.args.length})
-                </h4>
-                <div className="space-y-4">
-                  {instruction.args.map((arg, index) => {
-                    const argName = arg.name || `arg_${index}`;
-                    return (
-                      <div key={index}>
+            <div className="p-6">
+              {instruction.accounts && instruction.accounts.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-5">
+                    <Users className="w-4 h-4 text-[var(--accent)]" />
+                    <h4 className="font-semibold text-[var(--foreground)]">
+                      Accounts
+                    </h4>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--background-secondary)] text-[var(--foreground-muted)]">
+                      {instruction.accounts.length}
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {instruction.accounts.map((account, index) => {
+                      const accountName = account.name || `account_${index}`;
+                      return (
+                        <AccountInput
+                          key={index}
+                          account={account}
+                          index={index}
+                          value={(formValues[accountName] as string) || ""}
+                          onChange={(value) => setValue(accountName, value)}
+                          error={
+                            errors[accountName]?.message as string | undefined
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {instruction.args && instruction.args.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-5">
+                    <FileText className="w-4 h-4 text-[var(--accent)]" />
+                    <h4 className="font-semibold text-[var(--foreground)]">
+                      Arguments
+                    </h4>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--background-secondary)] text-[var(--foreground-muted)]">
+                      {instruction.args.length}
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {instruction.args.map((arg, index) => {
+                      const argName =
+                        typeof arg.name === "string"
+                          ? arg.name
+                          : typeof arg.name === "object" &&
+                            arg.name !== null &&
+                            "name" in arg.name
+                          ? (arg.name as { name: string }).name
+                          : `arg_${index}`;
+                      return (
                         <ArgumentInput
+                          key={index}
                           arg={arg}
                           value={formValues[argName]}
                           onChange={(value) => setValue(argName, value)}
                           error={errors[argName]?.message as string | undefined}
                           idlTypes={program.idl.types}
                         />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {(!instruction.accounts || instruction.accounts.length === 0) &&
-              (!instruction.args || instruction.args.length === 0) && (
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
-                    This instruction has no accounts or arguments. You can
-                    execute it directly.
-                  </p>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-            {submitError && (
-              <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md">
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {submitError}
-                </p>
-              </div>
-            )}
+              {(!instruction.accounts || instruction.accounts.length === 0) &&
+                (!instruction.args || instruction.args.length === 0) && (
+                  <div className="py-8 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--background-secondary)] flex items-center justify-center mx-auto mb-4">
+                      <Zap className="w-8 h-8 text-[var(--foreground-muted)]" />
+                    </div>
+                    <p className="text-sm text-[var(--foreground-muted)]">
+                      This instruction has no accounts or arguments.
+                      <br />
+                      You can execute it directly.
+                    </p>
+                  </div>
+                )}
 
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+              {submitError && (
+                <div className="mb-6 p-4 rounded-xl bg-[var(--error-subtle)] border border-[var(--error)]/20">
+                  <p className="text-sm text-[var(--error)] leading-relaxed">
+                    {submitError}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-5 border-t border-[var(--border)] bg-[var(--background-secondary)]">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="w-full px-6 py-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold transition-all duration-200 flex items-center justify-center gap-3"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Building...
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Building Transaction...</span>
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4" />
-                    Build & Execute Transaction
+                    <Anchor className="w-5 h-5" />
+                    <span>Execute Transaction</span>
                   </>
                 )}
               </button>

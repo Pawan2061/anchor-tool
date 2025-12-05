@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info } from "lucide-react";
+import { Info, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Idl } from "@coral-xyz/anchor";
 import {
   isArrayType,
@@ -37,7 +37,18 @@ export function ArgumentInput({
 }: ArgumentInputProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const type = arg.type;
-  const argName = arg.name || "argument";
+  let argName: string;
+  if (typeof arg.name === "string") {
+    argName = arg.name;
+  } else if (
+    typeof arg.name === "object" &&
+    arg.name !== null &&
+    "name" in arg.name
+  ) {
+    argName = (arg.name as { name: string }).name;
+  } else {
+    argName = "argument";
+  }
   const typeString = typeof type === "string" ? type : typeToString(type);
   const description = getArgumentDescription(argName, typeString);
   const placeholder = getArgumentPlaceholder(argName, typeString);
@@ -47,13 +58,15 @@ export function ArgumentInput({
     const isSet = value !== null && value !== undefined && value !== "";
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            {argName}
-            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-              (Option)
+          <label className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-[var(--foreground)]">
+              {argName}
             </span>
+            <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+              Option
+            </code>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -66,9 +79,9 @@ export function ArgumentInput({
                   onChange(null);
                 }
               }}
-              className="rounded border-slate-300 dark:border-slate-700"
+              className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
             />
-            <span className="text-xs text-slate-600 dark:text-slate-400">
+            <span className="text-xs text-[var(--foreground-muted)]">
               Set value
             </span>
           </label>
@@ -93,13 +106,15 @@ export function ArgumentInput({
     const arrayValue = Array.isArray(value) ? value : [];
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            {argName}
-            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-              ({typeToString(type)})
+          <label className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-[var(--foreground)]">
+              {argName}
             </span>
+            <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+              {typeToString(type)}
+            </code>
           </label>
           {!isFixed && (
             <button
@@ -107,17 +122,18 @@ export function ArgumentInput({
               onClick={() =>
                 onChange([...arrayValue, getDefaultValue(elementType)])
               }
-              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all"
             >
-              + Add Item
+              <Plus className="w-3 h-3" />
+              Add Item
             </button>
           )}
         </div>
-        <div className="space-y-2 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
+        <div className="space-y-3 pl-4 border-l-2 border-[var(--border)]">
           {(isFixed ? Array(length).fill(null) : arrayValue).map((_, index) => (
-            <div key={index} className="space-y-1">
+            <div key={index} className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-xs font-mono text-[var(--foreground-muted)] bg-[var(--background-secondary)] px-2 py-1 rounded">
                   [{index}]
                 </span>
                 {!isFixed && (
@@ -128,9 +144,9 @@ export function ArgumentInput({
                       newValue.splice(index, 1);
                       onChange(newValue);
                     }}
-                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-700"
+                    className="p-1.5 rounded-lg text-[var(--foreground-muted)] hover:text-[var(--error)] hover:bg-[var(--error-subtle)] transition-colors"
                   >
-                    Remove
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -163,24 +179,28 @@ export function ArgumentInput({
       typeof value === "object" && value !== null ? value : {};
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-between w-full text-left"
+          className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--background-secondary)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors"
         >
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            {argName}
-            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-              ({type.defined})
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-[var(--foreground)]">
+              {argName}
             </span>
-          </label>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            {isExpanded ? "−" : "+"}
-          </span>
+            <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+              {type.defined}
+            </code>
+          </div>
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4 text-[var(--foreground-muted)]" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-[var(--foreground-muted)]" />
+          )}
         </button>
         {isExpanded && structDef && "fields" in structDef && (
-          <div className="space-y-3 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
+          <div className="space-y-4 pl-4 border-l-2 border-[var(--border)]">
             {Array.isArray(structDef.fields) &&
               structDef.fields.map(
                 (
@@ -230,22 +250,22 @@ export function ArgumentInput({
     if (type === "bool") {
       return (
         <div className="space-y-2">
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-[var(--background-secondary)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors">
             <input
               type="checkbox"
               checked={value === true || value === "true"}
               onChange={(e) => onChange(e.target.checked)}
-              className="rounded border-slate-300 dark:border-slate-700 w-4 h-4"
+              className="w-5 h-5 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
             />
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <span className="font-semibold text-sm text-[var(--foreground)]">
               {argName}
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-              (bool)
-            </span>
+            <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+              bool
+            </code>
           </label>
           {error && (
-            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-xs font-medium text-[var(--error)]">{error}</p>
           )}
         </div>
       );
@@ -253,17 +273,19 @@ export function ArgumentInput({
 
     if (type === "string") {
       return (
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            {argName}
-            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-              (string)
+        <div className="space-y-3">
+          <label className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-[var(--foreground)]">
+              {argName}
             </span>
+            <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+              string
+            </code>
           </label>
           {description && (
-            <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
-              <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-blue-700 dark:text-blue-300">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[var(--info-subtle)] border border-[var(--info)]/20">
+              <Info className="w-4 h-4 text-[var(--info)] mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-[var(--info)] leading-relaxed">
                 {description}
               </p>
             </div>
@@ -273,14 +295,14 @@ export function ArgumentInput({
             value={typeof value === "string" ? value : ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            className={`w-full px-4 py-3 rounded-xl bg-[var(--background-secondary)] border text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all ${
               error
-                ? "border-red-300 dark:border-red-700"
-                : "border-slate-300 dark:border-slate-700"
+                ? "border-[var(--error)] bg-[var(--error-subtle)]"
+                : "border-[var(--border)] hover:border-[var(--foreground-muted)]"
             }`}
           />
           {error && (
-            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-xs font-medium text-[var(--error)]">{error}</p>
           )}
         </div>
       );
@@ -288,43 +310,47 @@ export function ArgumentInput({
 
     if (type === "publicKey") {
       return (
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            {argName}
-            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-              (publicKey)
+        <div className="space-y-3">
+          <label className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-[var(--foreground)]">
+              {argName}
             </span>
+            <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+              publicKey
+            </code>
           </label>
           <input
             type="text"
             value={typeof value === "string" ? value : ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Enter public key..."
-            className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 font-mono text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            className={`w-full px-4 py-3 rounded-xl bg-[var(--background-secondary)] border font-mono text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all ${
               error
-                ? "border-red-300 dark:border-red-700"
-                : "border-slate-300 dark:border-slate-700"
+                ? "border-[var(--error)] bg-[var(--error-subtle)]"
+                : "border-[var(--border)] hover:border-[var(--foreground-muted)]"
             }`}
           />
           {error && (
-            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-xs font-medium text-[var(--error)]">{error}</p>
           )}
         </div>
       );
     }
 
     return (
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-          {argName}
-          <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-            ({type})
+      <div className="space-y-3">
+        <label className="flex items-center gap-2">
+          <span className="font-semibold text-sm text-[var(--foreground)]">
+            {argName}
           </span>
+          <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+            {type}
+          </code>
         </label>
         {description && (
-          <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
-            <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-700 dark:text-blue-300">
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[var(--info-subtle)] border border-[var(--info)]/20">
+            <Info className="w-4 h-4 text-[var(--info)] mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-[var(--info)] leading-relaxed">
               {description}
             </p>
           </div>
@@ -343,26 +369,28 @@ export function ArgumentInput({
             onChange(isNaN(num) ? 0 : num);
           }}
           placeholder={placeholder}
-          className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+          className={`w-full px-4 py-3 rounded-xl bg-[var(--background-secondary)] border font-mono text-sm text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all ${
             error
-              ? "border-red-300 dark:border-red-700"
-              : "border-slate-300 dark:border-slate-700"
+              ? "border-[var(--error)] bg-[var(--error-subtle)]"
+              : "border-[var(--border)] hover:border-[var(--foreground-muted)]"
           }`}
         />
         {error && (
-          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-xs font-medium text-[var(--error)]">{error}</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-        {argName}
-        <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-          ({typeToString(type)})
+    <div className="space-y-3">
+      <label className="flex items-center gap-2">
+        <span className="font-semibold text-sm text-[var(--foreground)]">
+          {argName}
         </span>
+        <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
+          {typeToString(type)}
+        </code>
       </label>
       <textarea
         value={
@@ -375,15 +403,15 @@ export function ArgumentInput({
             onChange(e.target.value);
           }
         }}
-        rows={3}
-        className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+        rows={4}
+        className={`w-full px-4 py-3 rounded-xl bg-[var(--background-secondary)] border font-mono text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all resize-none ${
           error
-            ? "border-red-300 dark:border-red-700"
-            : "border-slate-300 dark:border-slate-700"
+            ? "border-[var(--error)] bg-[var(--error-subtle)]"
+            : "border-[var(--border)] hover:border-[var(--foreground-muted)]"
         }`}
       />
       {error && (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-xs font-medium text-[var(--error)]">{error}</p>
       )}
     </div>
   );
