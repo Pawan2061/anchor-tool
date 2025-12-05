@@ -37,7 +37,18 @@ export function ArgumentInput({
 }: ArgumentInputProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const type = arg.type;
-  const argName = arg.name || "argument";
+  let argName: string;
+  if (typeof arg.name === "string") {
+    argName = arg.name;
+  } else if (
+    typeof arg.name === "object" &&
+    arg.name !== null &&
+    "name" in arg.name
+  ) {
+    argName = (arg.name as { name: string }).name;
+  } else {
+    argName = "argument";
+  }
   const typeString = typeof type === "string" ? type : typeToString(type);
   const description = getArgumentDescription(argName, typeString);
   const placeholder = getArgumentPlaceholder(argName, typeString);
@@ -261,9 +272,9 @@ export function ArgumentInput({
             </span>
           </label>
           {description && (
-            <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
-              <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-blue-700 dark:text-blue-300">
+            <div className="flex items-start gap-2.5 p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 rounded-lg mb-2">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
                 {description}
               </p>
             </div>
@@ -273,10 +284,10 @@ export function ArgumentInput({
             value={typeof value === "string" ? value : ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            className={`w-full px-4 py-2.5 border rounded-lg bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all ${
               error
-                ? "border-red-300 dark:border-red-700"
-                : "border-slate-300 dark:border-slate-700"
+                ? "border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20"
+                : "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
             }`}
           />
           {error && (
@@ -322,9 +333,9 @@ export function ArgumentInput({
           </span>
         </label>
         {description && (
-          <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
-            <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-700 dark:text-blue-300">
+          <div className="flex items-start gap-2.5 p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 rounded-lg mb-2">
+            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
               {description}
             </p>
           </div>
@@ -343,10 +354,10 @@ export function ArgumentInput({
             onChange(isNaN(num) ? 0 : num);
           }}
           placeholder={placeholder}
-          className={`w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+          className={`w-full px-4 py-2.5 border rounded-lg bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all ${
             error
-              ? "border-red-300 dark:border-red-700"
-              : "border-slate-300 dark:border-slate-700"
+              ? "border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20"
+              : "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
           }`}
         />
         {error && (

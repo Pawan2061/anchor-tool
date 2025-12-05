@@ -39,42 +39,45 @@ export function InstructionList({ program }: InstructionListProps) {
 
   return (
     <div className="h-full flex">
-      <div className="w-80 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-y-auto">
-        <div className="p-5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2 mb-2">
-            <FileCode className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">
+      <div className="w-80 border-r border-slate-200/60 dark:border-slate-800/60 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 overflow-y-auto">
+        <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <FileCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-50">
               {program.name}
             </h2>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-2 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md inline-block">
             {program.programId.toString().slice(0, 8)}...
             {program.programId.toString().slice(-8)}
           </p>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            {getInstructionCount(program.idl)} instructions available
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+            {getInstructionCount(program.idl)} instruction
+            {getInstructionCount(program.idl) !== 1 ? "s" : ""} available
           </p>
         </div>
 
-        <div className="p-3 space-y-1.5">
+        <div className="p-4 space-y-2">
           {instructions.map((instruction, index) => (
             <button
               key={index}
               onClick={() => setSelectedInstruction(instruction)}
-              className={`w-full text-left p-3 rounded-lg transition-all ${
+              className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
                 selectedInstruction?.name === instruction.name
-                  ? "bg-blue-50 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-800 shadow-sm"
-                  : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
+                  ? "bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/40 dark:to-blue-900/20 border-2 border-blue-300 dark:border-blue-800 shadow-md shadow-blue-500/10"
+                  : "bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="font-semibold text-sm text-slate-900 dark:text-slate-50 truncate">
                       {instruction.name}
                     </p>
                     {selectedInstruction?.name === instruction.name && (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                     )}
                   </div>
                   {instruction.accounts && (

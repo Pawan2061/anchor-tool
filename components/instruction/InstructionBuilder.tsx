@@ -75,7 +75,14 @@ export function InstructionBuilder({
 
     if (instruction.args) {
       instruction.args.forEach((arg) => {
-        const argName = arg.name || `arg_${instruction.args!.indexOf(arg)}`;
+        const argName =
+          typeof arg.name === "string"
+            ? arg.name
+            : typeof arg.name === "object" &&
+              arg.name !== null &&
+              "name" in arg.name
+            ? (arg.name as { name: string }).name
+            : `arg_${instruction.args!.indexOf(arg)}`;
         const type = arg.type;
 
         if (typeof type === "string") {
@@ -114,7 +121,14 @@ export function InstructionBuilder({
         defaults[accountName] = "";
       });
       instruction.args?.forEach((arg) => {
-        const argName = arg.name || `arg_${instruction.args!.indexOf(arg)}`;
+        const argName =
+          typeof arg.name === "string"
+            ? arg.name
+            : typeof arg.name === "object" &&
+              arg.name !== null &&
+              "name" in arg.name
+            ? (arg.name as { name: string }).name
+            : `arg_${instruction.args!.indexOf(arg)}`;
         defaults[argName] = getDefaultValue(arg.type);
       });
       return defaults;
@@ -214,60 +228,73 @@ export function InstructionBuilder({
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Code2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-              {instruction.name}
-            </h2>
+    <div className="min-h-full bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <Code2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
+                {instruction.name}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                Build and execute this instruction
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400 ml-9">
-            Build and execute this instruction
-          </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm">
-          <h3 className="text-base font-semibold mb-5 text-slate-900 dark:text-slate-50 flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Instruction Details
-          </h3>
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-md">
+              <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </div>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">
+              Instruction Details
+            </h3>
+          </div>
 
           {instruction.accounts && instruction.accounts.length > 0 && (
             <div className="mb-6">
-              <h4 className="text-xs font-semibold mb-3 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                <Users className="w-3.5 h-3.5" />
-                Accounts ({instruction.accounts.length})
-              </h4>
-              <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Accounts
+                </h4>
+                <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                  {instruction.accounts.length}
+                </span>
+              </div>
+              <div className="space-y-2.5">
                 {instruction.accounts.map(
                   (account: IdlAccountItem, index: number) => (
                     <div
                       key={index}
-                      className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700"
+                      className="group p-3.5 bg-gradient-to-r from-slate-50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 shrink-0">
                           {index}
-                        </span>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm text-slate-900 dark:text-slate-50">
                             {account.name || `Account ${index + 1}`}
                           </p>
-                          <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                          <div className="flex gap-1.5 mt-2 flex-wrap">
                             {isIdlAccount(account) && account.isMut && (
-                              <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                              <span className="inline-flex items-center text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
                                 Mutable
                               </span>
                             )}
                             {isIdlAccount(account) && account.isSigner && (
-                              <span className="text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
+                              <span className="inline-flex items-center text-xs font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                                 Signer
                               </span>
                             )}
                             {isIdlAccount(account) && account.isOptional && (
-                              <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded">
+                              <span className="inline-flex items-center text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
                                 Optional
                               </span>
                             )}
@@ -283,26 +310,39 @@ export function InstructionBuilder({
 
           {instruction.args && instruction.args.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold mb-3 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5" />
-                Arguments ({instruction.args.length})
-              </h4>
-              <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Arguments
+                </h4>
+                <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                  {instruction.args.length}
+                </span>
+              </div>
+              <div className="space-y-2.5">
                 {instruction.args.map((arg: IdlField, index: number) => (
                   <div
                     key={index}
-                    className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700"
+                    className="group p-3.5 bg-gradient-to-r from-slate-50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 shrink-0">
                         {index}
-                      </span>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-slate-900 dark:text-slate-50">
-                          {arg.name || `Argument ${index + 1}`}
+                          {typeof arg.name === "string"
+                            ? arg.name
+                            : typeof arg.name === "object" &&
+                              arg.name !== null &&
+                              "name" in arg.name
+                            ? (arg.name as { name: string }).name
+                            : `Argument ${index + 1}`}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono break-all">
-                          Type:{" "}
+                          <span className="text-slate-400 dark:text-slate-500">
+                            Type:
+                          </span>{" "}
                           {typeof arg.type === "string"
                             ? arg.type
                             : JSON.stringify(arg.type)}
@@ -324,81 +364,96 @@ export function InstructionBuilder({
         </div>
 
         {/* Common Addresses Helper Panel */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-sm">
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-5 shadow-sm">
           <button
             type="button"
             onClick={() => setShowCommonAddresses(!showCommonAddresses)}
-            className="w-full flex items-center justify-between text-left"
+            className="w-full flex items-center justify-between text-left group"
           >
-            <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-md group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
+                <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Common Solana Addresses
               </span>
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium transition-transform group-hover:scale-110">
               {showCommonAddresses ? "−" : "+"}
-            </span>
+            </div>
           </button>
           {showCommonAddresses && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-5 pt-5 border-t border-slate-200 dark:border-slate-800 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <div className="p-3.5 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
                     System Program
                   </p>
-                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all leading-relaxed">
                     {COMMON_PROGRAMS.systemProgram}
                   </p>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <div className="p-3.5 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
                     Token Program
                   </p>
-                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all leading-relaxed">
                     {COMMON_PROGRAMS.tokenProgram}
                   </p>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                <div className="p-3.5 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
                     Associated Token Program
                   </p>
-                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                  <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all leading-relaxed">
                     {COMMON_PROGRAMS.associatedTokenProgram}
                   </p>
                 </div>
                 {getTokenMintAddress(network, "usdc") && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  <div className="p-3.5 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
                       USDC Mint ({network})
                     </p>
-                    <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all">
+                    <p className="text-xs font-mono text-slate-900 dark:text-slate-50 break-all leading-relaxed">
                       {getTokenMintAddress(network, "usdc")}
                     </p>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-                💡 Tip: Click &quot;Auto-fill&quot; buttons in account fields to
-                use these addresses automatically
-              </p>
+              <div className="flex items-start gap-2 p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-200/50 dark:border-blue-900/30">
+                <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                  <span className="font-medium">Tip:</span> Click
+                  &quot;Auto-fill&quot; buttons in account fields to use these
+                  addresses automatically
+                </p>
+              </div>
             </div>
           )}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm">
-            <h3 className="text-base font-semibold mb-5 text-slate-900 dark:text-slate-50 flex items-center gap-2">
-              <Code2 className="w-4 h-4" />
-              Build Transaction
-            </h3>
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+                <Code2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                Build Transaction
+              </h3>
+            </div>
 
             {instruction.accounts && instruction.accounts.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-xs font-semibold mb-4 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5" />
-                  Accounts ({instruction.accounts.length})
-                </h4>
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-5">
+                  <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Accounts
+                  </h4>
+                  <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                    {instruction.accounts.length}
+                  </span>
+                </div>
                 <div className="space-y-4">
                   {instruction.accounts.map((account, index) => {
                     const accountName = account.name || `account_${index}`;
@@ -421,13 +476,26 @@ export function InstructionBuilder({
 
             {instruction.args && instruction.args.length > 0 && (
               <div>
-                <h4 className="text-xs font-semibold mb-4 text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                  <FileText className="w-3.5 h-3.5" />
-                  Arguments ({instruction.args.length})
-                </h4>
+                <div className="flex items-center gap-2 mb-5">
+                  <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Arguments
+                  </h4>
+                  <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                    {instruction.args.length}
+                  </span>
+                </div>
                 <div className="space-y-4">
                   {instruction.args.map((arg, index) => {
-                    const argName = arg.name || `arg_${index}`;
+                    // Handle case where arg.name might be an object or string
+                    const argName =
+                      typeof arg.name === "string"
+                        ? arg.name
+                        : typeof arg.name === "object" &&
+                          arg.name !== null &&
+                          "name" in arg.name
+                        ? (arg.name as { name: string }).name
+                        : `arg_${index}`;
                     return (
                       <div key={index}>
                         <ArgumentInput
@@ -446,8 +514,8 @@ export function InstructionBuilder({
 
             {(!instruction.accounts || instruction.accounts.length === 0) &&
               (!instruction.args || instruction.args.length === 0) && (
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
+                <div className="p-5 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
                     This instruction has no accounts or arguments. You can
                     execute it directly.
                   </p>
@@ -455,28 +523,28 @@ export function InstructionBuilder({
               )}
 
             {submitError && (
-              <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md">
-                <p className="text-sm text-red-600 dark:text-red-400">
+              <div className="mt-6 p-4 bg-red-50/80 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/60 rounded-lg">
+                <p className="text-sm text-red-700 dark:text-red-400 leading-relaxed">
                   {submitError}
                 </p>
               </div>
             )}
 
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="w-full px-6 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 disabled:shadow-none"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Building...
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Building Transaction...</span>
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4" />
-                    Build & Execute Transaction
+                    <Send className="w-5 h-5" />
+                    <span>Build & Execute Transaction</span>
                   </>
                 )}
               </button>
