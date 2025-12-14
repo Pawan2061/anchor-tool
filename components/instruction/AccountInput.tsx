@@ -50,15 +50,30 @@ export function AccountInput({
   const description = accountName ? getAccountDescription(accountName) : null;
 
   useEffect(() => {
-    if (!value && suggestedAddress && accountName) {
-      const lowerName = accountName.toLowerCase();
+    if (!value && accountName) {
       if (
-        lowerName === "system_program" ||
-        lowerName === "systemprogram" ||
-        (lowerName.includes("token_program") && !lowerName.includes("mint")) ||
-        lowerName.includes("associated_token")
+        typeof account === "object" &&
+        account !== null &&
+        "address" in account
       ) {
-        onChange(suggestedAddress);
+        const address = (account as { address?: string }).address;
+        if (address) {
+          onChange(address);
+          return;
+        }
+      }
+
+      if (suggestedAddress) {
+        const lowerName = accountName.toLowerCase();
+        if (
+          lowerName === "system_program" ||
+          lowerName === "systemprogram" ||
+          (lowerName.includes("token_program") &&
+            !lowerName.includes("mint")) ||
+          lowerName.includes("associated_token")
+        ) {
+          onChange(suggestedAddress);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,7 +101,6 @@ export function AccountInput({
 
   return (
     <div className="space-y-3">
-      {/* Label Row */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <label className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-sm text-[var(--foreground)]">
@@ -111,7 +125,6 @@ export function AccountInput({
           </div>
         </label>
 
-        {/* Quick Actions */}
         <div className="flex items-center gap-2">
           {suggestedAddress && !value && (
             <button
@@ -137,7 +150,6 @@ export function AccountInput({
         </div>
       </div>
 
-      {/* Description */}
       {description && (
         <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[var(--info-subtle)] border border-[var(--info)]/20">
           <Info className="w-4 h-4 text-[var(--info)] mt-0.5 flex-shrink-0" />
@@ -147,7 +159,6 @@ export function AccountInput({
         </div>
       )}
 
-      {/* Input Field */}
       <div className="relative">
         <input
           type="text"
@@ -180,12 +191,10 @@ export function AccountInput({
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <p className="text-xs font-medium text-[var(--error)]">{error}</p>
       )}
 
-      {/* Formatted Address */}
       {value && isValidPublicKey(value) && !error && (
         <p className="text-xs font-mono text-[var(--foreground-muted)] px-3 py-1.5 rounded-lg bg-[var(--background-secondary)] inline-block">
           {formatPublicKey(value, 8)}

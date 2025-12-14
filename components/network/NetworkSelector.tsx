@@ -42,7 +42,6 @@ export function NetworkSelector() {
         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--foreground-muted)] pointer-events-none" />
       </div>
 
-      {/* Status Indicator */}
       <div className="flex items-center gap-2 px-1">
         {isLoading ? (
           <div className="flex items-center gap-2">

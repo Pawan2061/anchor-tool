@@ -67,6 +67,14 @@ export function InstructionBuilder({
         const accountName = account.name || `account_${index}`;
         const isOptional = isIdlAccount(account) && account.isOptional;
 
+        const hasAddress =
+          typeof account === "object" &&
+          account !== null &&
+          "address" in account;
+        if (hasAddress) {
+          return;
+        }
+
         if (isOptional) {
           schema[accountName] = z
             .string()
@@ -172,6 +180,16 @@ export function InstructionBuilder({
         for (const account of instruction.accounts) {
           const accountName =
             account.name || `account_${instruction.accounts.indexOf(account)}`;
+
+          const hasAddress =
+            typeof account === "object" &&
+            account !== null &&
+            "address" in account;
+          if (hasAddress) {
+            accounts.push(null);
+            continue;
+          }
+
           const value = data[accountName];
           const isOptional = isIdlAccount(account) && account.isOptional;
 
