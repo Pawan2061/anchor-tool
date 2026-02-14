@@ -12,6 +12,7 @@ import {
   getOptionBaseType,
   typeToString,
   getDefaultValue,
+  resolveDefinedTypeName,
 } from "@/lib/anchor/instruction";
 import {
   getArgumentDescription,
@@ -28,6 +29,16 @@ interface ArgumentInputProps {
   idlTypes?: Idl["types"];
 }
 
+function resolveArgName(name: unknown, fallback = "argument"): string {
+  if (typeof name === "string") {
+    return name;
+  }
+  if (typeof name === "object" && name !== null && "name" in name) {
+    return resolveArgName((name as { name?: unknown }).name, fallback);
+  }
+  return fallback;
+}
+
 export function ArgumentInput({
   arg,
   value,
@@ -37,18 +48,7 @@ export function ArgumentInput({
 }: ArgumentInputProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const type = arg.type;
-  let argName: string;
-  if (typeof arg.name === "string") {
-    argName = arg.name;
-  } else if (
-    typeof arg.name === "object" &&
-    arg.name !== null &&
-    "name" in arg.name
-  ) {
-    argName = (arg.name as { name: string }).name;
-  } else {
-    argName = "argument";
-  }
+  const argName = resolveArgName(arg.name);
   const typeString = typeof type === "string" ? type : typeToString(type);
   const description = getArgumentDescription(argName, typeString);
   const placeholder = getArgumentPlaceholder(argName, typeString);
@@ -174,7 +174,8 @@ export function ArgumentInput({
   }
 
   if (isStructType(type)) {
-    const structDef = idlTypes?.find((t) => t.name === type.defined);
+    const structTypeName = resolveDefinedTypeName(type.defined) ?? "Struct";
+    const structDef = idlTypes?.find((t) => t.name === structTypeName);
     const structValue =
       typeof value === "object" && value !== null ? value : {};
 
@@ -190,7 +191,7 @@ export function ArgumentInput({
               {argName}
             </span>
             <code className="text-[10px] px-2 py-0.5 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
-              {type.defined}
+              {structTypeName}
             </code>
           </div>
           {isExpanded ? (

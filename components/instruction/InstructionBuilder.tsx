@@ -36,6 +36,20 @@ type IdlInstruction = Idl["instructions"][number];
 type IdlAccountItem = IdlInstruction["accounts"][number];
 type IdlField = IdlInstruction["args"][number];
 
+function resolveArgName(arg: IdlField, fallback: string): string {
+  const normalizeName = (name: unknown): string | null => {
+    if (typeof name === "string") {
+      return name;
+    }
+    if (typeof name === "object" && name !== null && "name" in name) {
+      return normalizeName((name as { name?: unknown }).name);
+    }
+    return null;
+  };
+
+  return normalizeName(arg.name) ?? fallback;
+}
+
 function isIdlAccount(
   account: IdlAccountItem
 ): account is Extract<IdlAccountItem, { isMut?: boolean }> {
@@ -93,15 +107,8 @@ export function InstructionBuilder({
     }
 
     if (instruction.args) {
-      instruction.args.forEach((arg) => {
-        const argName =
-          typeof arg.name === "string"
-            ? arg.name
-            : typeof arg.name === "object" &&
-              arg.name !== null &&
-              "name" in arg.name
-            ? (arg.name as { name: string }).name
-            : `arg_${instruction.args!.indexOf(arg)}`;
+      instruction.args.forEach((arg, index) => {
+        const argName = resolveArgName(arg, `arg_${index}`);
         const type = arg.type;
 
         if (typeof type === "string") {
@@ -139,15 +146,8 @@ export function InstructionBuilder({
         const accountName = account.name || `account_${index}`;
         defaults[accountName] = "";
       });
-      instruction.args?.forEach((arg) => {
-        const argName =
-          typeof arg.name === "string"
-            ? arg.name
-            : typeof arg.name === "object" &&
-              arg.name !== null &&
-              "name" in arg.name
-            ? (arg.name as { name: string }).name
-            : `arg_${instruction.args!.indexOf(arg)}`;
+      instruction.args?.forEach((arg, index) => {
+        const argName = resolveArgName(arg, `arg_${index}`);
         defaults[argName] = getDefaultValue(arg.type);
       });
       return defaults;
@@ -207,8 +207,8 @@ export function InstructionBuilder({
 
       const args: unknown[] = [];
       if (instruction.args) {
-        for (const arg of instruction.args) {
-          const argName = arg.name || `arg_${instruction.args.indexOf(arg)}`;
+        for (const [index, arg] of instruction.args.entries()) {
+          const argName = resolveArgName(arg, `arg_${index}`);
           const value = data[argName];
           args.push(parseValue(value, arg.type));
         }
@@ -359,13 +359,7 @@ export function InstructionBuilder({
                           {index}
                         </span>
                         <span className="font-medium text-sm text-[var(--foreground)]">
-                          {typeof arg.name === "string"
-                            ? arg.name
-                            : typeof arg.name === "object" &&
-                              arg.name !== null &&
-                              "name" in arg.name
-                            ? (arg.name as { name: string }).name
-                            : `Argument ${index + 1}`}
+                          {resolveArgName(arg, `Argument ${index + 1}`)}
                         </span>
                         <code className="ml-auto text-xs px-2 py-1 rounded bg-[var(--code-bg)] text-[var(--code-text)] font-mono">
                           {typeof arg.type === "string"
@@ -524,14 +518,7 @@ export function InstructionBuilder({
                   </div>
                   <div className="space-y-4">
                     {instruction.args.map((arg, index) => {
-                      const argName =
-                        typeof arg.name === "string"
-                          ? arg.name
-                          : typeof arg.name === "object" &&
-                            arg.name !== null &&
-                            "name" in arg.name
-                          ? (arg.name as { name: string }).name
-                          : `arg_${index}`;
+                      const argName = resolveArgName(arg, `arg_${index}`);
                       return (
                         <ArgumentInput
                           key={index}

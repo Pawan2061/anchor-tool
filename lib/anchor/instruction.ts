@@ -3,6 +3,16 @@ import { Idl } from "@coral-xyz/anchor";
 
 type IdlType = Idl["instructions"][number]["args"][number]["type"];
 
+export function resolveDefinedTypeName(defined: unknown): string | null {
+  if (typeof defined === "string") {
+    return defined;
+  }
+  if (typeof defined === "object" && defined !== null && "name" in defined) {
+    return resolveDefinedTypeName((defined as { name?: unknown }).name);
+  }
+  return null;
+}
+
 export function isPrimitiveType(type: IdlType): boolean {
   if (typeof type === "string") {
     const primitives = [
@@ -39,7 +49,7 @@ export function isOptionType(type: IdlType): type is { option: IdlType } {
   return false;
 }
 
-export function isStructType(type: IdlType): type is { defined: string } {
+export function isStructType(type: IdlType): type is { defined: unknown } {
   if (typeof type === "object" && type !== null) {
     return "defined" in type;
   }
@@ -77,7 +87,7 @@ export function typeToString(type: IdlType): string {
     return `Option<${typeToString(type.option)}>`;
   }
   if (isStructType(type)) {
-    return type.defined;
+    return resolveDefinedTypeName(type.defined) ?? JSON.stringify(type.defined);
   }
   return JSON.stringify(type);
 }
