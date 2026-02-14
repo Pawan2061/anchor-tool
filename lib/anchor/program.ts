@@ -12,6 +12,65 @@ import {
 import { Idl } from "@coral-xyz/anchor";
 import { Program } from "@/types/anchor";
 import { validateIdlTypes } from "./validateIdl";
+
+function normalizeInstructionAccount(
+  account: Idl["instructions"][number]["accounts"][number]
+): Idl["instructions"][number]["accounts"][number] {
+  if (typeof account === "string") {
+    return account;
+  }
+  if (typeof account !== "object" || account === null) {
+    return account;
+  }
+
+  const accountObj = account as Record<string, unknown>;
+  const normalizedAccount: {
+    name: string;
+    isMut?: boolean;
+    isSigner?: boolean;
+    isOptional?: boolean;
+    address?: string;
+    pda?: unknown;
+    accounts?: Idl["instructions"][number]["accounts"];
+  } = {
+    name: (accountObj.name as string) || "",
+  };
+
+  if ("writable" in accountObj) {
+    normalizedAccount.isMut = accountObj.writable === true;
+  } else if ("isMut" in accountObj) {
+    normalizedAccount.isMut = accountObj.isMut === true;
+  }
+
+  if ("signer" in accountObj) {
+    normalizedAccount.isSigner = accountObj.signer === true;
+  } else if ("isSigner" in accountObj) {
+    normalizedAccount.isSigner = accountObj.isSigner === true;
+  }
+
+  if ("optional" in accountObj) {
+    normalizedAccount.isOptional = accountObj.optional === true;
+  } else if ("isOptional" in accountObj) {
+    normalizedAccount.isOptional = accountObj.isOptional === true;
+  }
+
+  if ("address" in accountObj) {
+    normalizedAccount.address = accountObj.address as string;
+  }
+
+  if ("pda" in accountObj) {
+    normalizedAccount.pda = accountObj.pda;
+  }
+
+  if ("accounts" in accountObj && Array.isArray(accountObj.accounts)) {
+    normalizedAccount.accounts = (
+      accountObj.accounts as Idl["instructions"][number]["accounts"]
+    ).map((child) => normalizeInstructionAccount(child));
+  }
+
+  return normalizedAccount as Idl["instructions"][number]["accounts"][number];
+}
+
 function normalizeIdl(idl: Idl): Idl {
   const normalized = JSON.parse(JSON.stringify(idl)) as Idl & {
     version?: string;
@@ -37,56 +96,8 @@ function normalizeIdl(idl: Idl): Idl {
   if (normalized.instructions && Array.isArray(normalized.instructions)) {
     normalized.instructions = normalized.instructions.map((instruction) => {
       if (instruction.accounts && Array.isArray(instruction.accounts)) {
-        instruction.accounts = instruction.accounts.map(
-          (account): Idl["instructions"][number]["accounts"][number] => {
-            if (typeof account === "string") {
-              return account;
-            }
-            if (typeof account === "object" && account !== null) {
-              const accountObj = account as Record<string, unknown>;
-              const normalizedAccount = {
-                name: accountObj.name as string,
-                isMut: false,
-                isSigner: false,
-              } as {
-                name: string;
-                isMut: boolean;
-                isSigner: boolean;
-                isOptional?: boolean;
-                address?: string;
-                pda?: unknown;
-              };
-
-              if ("writable" in accountObj) {
-                normalizedAccount.isMut = accountObj.writable === true;
-              } else if ("isMut" in accountObj) {
-                normalizedAccount.isMut = accountObj.isMut === true;
-              }
-
-              if ("signer" in accountObj) {
-                normalizedAccount.isSigner = accountObj.signer === true;
-              } else if ("isSigner" in accountObj) {
-                normalizedAccount.isSigner = accountObj.isSigner === true;
-              }
-
-              if ("optional" in accountObj) {
-                normalizedAccount.isOptional = accountObj.optional === true;
-              } else if ("isOptional" in accountObj) {
-                normalizedAccount.isOptional = accountObj.isOptional === true;
-              }
-
-              if ("address" in accountObj) {
-                normalizedAccount.address = accountObj.address as string;
-              }
-
-              if ("pda" in accountObj) {
-                normalizedAccount.pda = accountObj.pda;
-              }
-
-              return normalizedAccount as Idl["instructions"][number]["accounts"][number];
-            }
-            return account;
-          }
+        instruction.accounts = instruction.accounts.map((account) =>
+          normalizeInstructionAccount(account)
         ) as Idl["instructions"][number]["accounts"];
       }
       return instruction;

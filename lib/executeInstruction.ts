@@ -1,15 +1,12 @@
-import { PublicKey, Transaction, Connection, Keypair } from "@solana/web3.js";
+import { Transaction, Connection, Keypair } from "@solana/web3.js";
 import { Program as AnchorProgram, Idl } from "@coral-xyz/anchor";
 import { sendTransaction, TransactionSigner } from "@/lib/solana/transaction";
-
-type IdlAccountItem = Idl["instructions"][number]["accounts"][number];
 
 interface ExecuteInstructionParams {
   program: AnchorProgram<Idl>;
   instructionName: string;
   args: unknown[];
-  accountKeys: (PublicKey | null)[];
-  idlAccounts: IdlAccountItem[];
+  accounts: Record<string, unknown>;
   connection: Connection;
   signer: TransactionSigner | null;
   keypair?: Keypair | null;
@@ -19,8 +16,7 @@ export async function executeInstruction({
   program,
   instructionName,
   args,
-  accountKeys,
-  idlAccounts,
+  accounts,
   connection,
   signer,
   keypair,
@@ -34,39 +30,7 @@ export async function executeInstruction({
     throw new Error("No public key available");
   }
 
-  const accountObj: Record<string, PublicKey> = {};
   const signers: Keypair[] = [];
-
-  idlAccounts.forEach((acct: IdlAccountItem, idx: number) => {
-    const key = accountKeys[idx];
-    const accountName = typeof acct === "string" ? acct : acct.name;
-
-    if (!accountName) return;
-
-    if (typeof acct === "object" && acct !== null && "address" in acct) {
-      const address = (acct as { address?: string }).address;
-      if (address) {
-        accountObj[accountName] = new PublicKey(address);
-        return;
-      }
-    }
-
-    if (key && !key.equals(PublicKey.default)) {
-      accountObj[accountName] = key;
-
-      const isSigner =
-        typeof acct === "object" &&
-        acct !== null &&
-        ("isSigner" in acct
-          ? (acct as { isSigner?: boolean }).isSigner
-          : "signer" in acct
-          ? (acct as { signer?: boolean }).signer
-          : false);
-
-      if (isSigner && !key.equals(publicKey)) {
-      }
-    }
-  });
 
   const methods = (
     program as unknown as {
@@ -79,7 +43,7 @@ export async function executeInstruction({
   }
 
   const methodBuilder = method(...args) as {
-    accounts: (accounts: Record<string, PublicKey>) => {
+    accounts: (accounts: Record<string, unknown>) => {
       instruction: () => Promise<Transaction>;
       rpc?: () => Promise<string>;
     };
@@ -87,10 +51,12 @@ export async function executeInstruction({
     rpc?: () => Promise<string>;
   };
 
-  const accountsToUse = Object.keys(accountObj).length > 0 ? accountObj : {};
-  const finalBuilder = methodBuilder.accounts(accountsToUse);
+  const finalBuilder = methodBuilder.accounts(accounts || {});
 
-  if (finalBuilder.rpc) {
+  // Use provider RPC only when the active signer can actually sign via wallet adapter.
+  // For imported keypairs we build the instruction and sign/send manually below.
+  const canUseProviderRpc = !!signer?.signTransaction && !keypair;
+  if (canUseProviderRpc && finalBuilder.rpc) {
     try {
       const signature = await finalBuilder.rpc();
       await connection.confirmTransaction(signature, "confirmed");
