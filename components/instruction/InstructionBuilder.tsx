@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,7 +16,6 @@ import {
   BookOpen,
   Anchor,
 } from "lucide-react";
-import { PublicKey } from "@solana/web3.js";
 import { Program } from "@/types/anchor";
 import { Idl } from "@coral-xyz/anchor";
 import { AccountInput } from "./AccountInput";
@@ -28,12 +27,23 @@ import { useWalletStore } from "@/stores/walletStore";
 import { createAnchorProgram } from "@/lib/anchor/program";
 import { executeInstruction } from "@/lib/executeInstruction";
 import {
+  IdlAccountItem,
+  buildAccountFieldKey,
+  buildAccountsObjectFromForm,
+  collectAccountFieldDefaults,
+  collectAccountLeafCount,
+  getAccountDocs,
+  getAccountAddress,
+  isAccountGroup,
+  isOptionalAccount,
+  resolveAccountName,
+} from "@/lib/anchor/accounts";
+import {
   COMMON_PROGRAMS,
   getTokenMintAddress,
 } from "@/lib/utils/commonAddresses";
 
 type IdlInstruction = Idl["instructions"][number];
-type IdlAccountItem = IdlInstruction["accounts"][number];
 type IdlField = IdlInstruction["args"][number];
 
 function resolveArgName(arg: IdlField, fallback: string): string {
@@ -76,21 +86,28 @@ export function InstructionBuilder({
   const buildValidationSchema = () => {
     const schema: Record<string, z.ZodTypeAny> = {};
 
-    if (instruction.accounts) {
-      instruction.accounts.forEach((account, index) => {
-        const accountName = account.name || `account_${index}`;
-        const isOptional = isIdlAccount(account) && account.isOptional;
+    const addAccountSchema = (
+      accounts: IdlInstruction["accounts"] | undefined,
+      parentPath: string[] = []
+    ) => {
+      if (!accounts) return;
 
-        const hasAddress =
-          typeof account === "object" &&
-          account !== null &&
-          "address" in account;
-        if (hasAddress) {
+      accounts.forEach((account, index) => {
+        const accountName = resolveAccountName(account, index);
+        const path = [...parentPath, accountName];
+
+        if (isAccountGroup(account)) {
+          addAccountSchema(account.accounts, path);
           return;
         }
 
-        if (isOptional) {
-          schema[accountName] = z
+        if (getAccountAddress(account)) {
+          return;
+        }
+
+        const fieldKey = buildAccountFieldKey(path);
+        if (isOptionalAccount(account)) {
+          schema[fieldKey] = z
             .string()
             .optional()
             .refine(
@@ -98,13 +115,14 @@ export function InstructionBuilder({
               "Must be a valid Solana public key"
             );
         } else {
-          schema[accountName] = z
+          schema[fieldKey] = z
             .string()
             .min(1, "Account is required")
             .refine(isValidPublicKey, "Must be a valid Solana public key");
         }
       });
-    }
+    };
+    addAccountSchema(instruction.accounts);
 
     if (instruction.args) {
       instruction.args.forEach((arg, index) => {
@@ -121,7 +139,7 @@ export function InstructionBuilder({
               .string()
               .refine(isValidPublicKey, "Must be a valid Solana public key");
           } else {
-            schema[argName] = z.number();
+            schema[argName] = z.union([z.number(), z.string()]);
           }
         } else {
           schema[argName] = z.any();
@@ -142,10 +160,7 @@ export function InstructionBuilder({
     resolver: zodResolver(schema),
     defaultValues: (() => {
       const defaults: Record<string, unknown> = {};
-      instruction.accounts?.forEach((account, index) => {
-        const accountName = account.name || `account_${index}`;
-        defaults[accountName] = "";
-      });
+      Object.assign(defaults, collectAccountFieldDefaults(instruction.accounts));
       instruction.args?.forEach((arg, index) => {
         const argName = resolveArgName(arg, `arg_${index}`);
         defaults[argName] = getDefaultValue(arg.type);
@@ -175,49 +190,21 @@ export function InstructionBuilder({
         throw new Error("No wallet connected. Please connect a wallet first.");
       }
 
-      const accounts: (PublicKey | null)[] = [];
-      if (instruction.accounts) {
-        for (const account of instruction.accounts) {
-          const accountName =
-            account.name || `account_${instruction.accounts.indexOf(account)}`;
-
-          const hasAddress =
-            typeof account === "object" &&
-            account !== null &&
-            "address" in account;
-          if (hasAddress) {
-            accounts.push(null);
-            continue;
-          }
-
-          const value = data[accountName];
-          const isOptional = isIdlAccount(account) && account.isOptional;
-
-          if (!value && !isOptional) {
-            throw new Error(`Account ${accountName} is required`);
-          }
-
-          if (value) {
-            accounts.push(new PublicKey(value as string));
-          } else if (isOptional) {
-            accounts.push(null);
-          }
-        }
-      }
+      const accounts = buildAccountsObjectFromForm(instruction.accounts, data);
 
       const args: unknown[] = [];
       if (instruction.args) {
         for (const [index, arg] of instruction.args.entries()) {
           const argName = resolveArgName(arg, `arg_${index}`);
           const value = data[argName];
-          args.push(parseValue(value, arg.type));
+          args.push(parseValue(value, arg.type, program.idl.types));
         }
       }
 
       console.log("Instruction data:", {
         program: program.programId.toString(),
         instruction: instruction.name,
-        accounts: accounts.map((a) => a?.toString() || "null"),
+        accounts,
         args,
       });
 
@@ -227,8 +214,7 @@ export function InstructionBuilder({
         program: anchorProgram,
         instructionName: instruction.name,
         args,
-        accountKeys: accounts,
-        idlAccounts: instruction.accounts || [],
+        accounts,
         connection,
         signer,
         keypair,
@@ -247,6 +233,112 @@ export function InstructionBuilder({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const renderAccountSummary = (
+    accounts: IdlInstruction["accounts"] | undefined,
+    parentPath: string[] = []
+  ): ReactElement[] => {
+    if (!accounts) return [];
+
+    return accounts.flatMap((account, index) => {
+      const accountName = resolveAccountName(account, index);
+      const path = [...parentPath, accountName];
+      const pathLabel = path.join(" > ");
+      const accountDocs = getAccountDocs(account);
+
+      if (isAccountGroup(account)) {
+        return renderAccountSummary(account.accounts, path);
+      }
+
+      return [
+        <div
+          key={path.join(".")}
+          className="flex items-center gap-3 p-3 rounded-lg bg-[var(--background-secondary)]"
+        >
+          <span className="w-6 h-6 rounded-md bg-[var(--surface)] text-xs font-mono flex items-center justify-center text-[var(--foreground-muted)]">
+            {index}
+          </span>
+          <div className="min-w-0">
+            <span className="font-medium text-sm text-[var(--foreground)]">
+              {accountName}
+            </span>
+            {accountDocs && (
+              <p className="text-[10px] text-[var(--foreground-muted)] truncate">
+                {accountDocs}
+              </p>
+            )}
+            {parentPath.length > 0 && (
+              <p className="text-[10px] text-[var(--foreground-muted)] truncate">
+                {pathLabel}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-1.5 ml-auto">
+            {isIdlAccount(account) && account.isMut && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--info-subtle)] text-[var(--info)]">
+                MUT
+              </span>
+            )}
+            {isIdlAccount(account) && account.isSigner && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--success-subtle)] text-[var(--success)]">
+                SIGNER
+              </span>
+            )}
+            {isOptionalAccount(account) && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--warning-subtle)] text-[var(--warning)]">
+                OPT
+              </span>
+            )}
+          </div>
+        </div>,
+      ];
+    });
+  };
+
+  const renderAccountInputs = (
+    accounts: IdlInstruction["accounts"] | undefined,
+    parentPath: string[] = [],
+    depth = 0
+  ): ReactElement[] => {
+    if (!accounts) return [];
+
+    return accounts.flatMap((account, index) => {
+      const accountName = resolveAccountName(account, index);
+      const path = [...parentPath, accountName];
+      const fieldKey = buildAccountFieldKey(path);
+
+      if (isAccountGroup(account)) {
+        return [
+          <div
+            key={fieldKey}
+            className={`rounded-xl border border-[var(--border)] p-4 ${
+              depth > 0 ? "bg-[var(--background-secondary)]" : "bg-[var(--surface)]"
+            }`}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--foreground-muted)] mb-3">
+              {path.join(" > ")}
+            </p>
+            <div className="space-y-4">
+              {renderAccountInputs(account.accounts, path, depth + 1)}
+            </div>
+          </div>,
+        ];
+      }
+
+      return [
+        <AccountInput
+          key={fieldKey}
+          account={account}
+          index={index}
+          value={(formValues[fieldKey] as string) || ""}
+          onChange={(value) => setValue(fieldKey, value)}
+          error={errors[fieldKey]?.message as string | undefined}
+          pathLabel={parentPath.length > 0 ? parentPath.join(" > ") : undefined}
+          idlDescription={getAccountDocs(account) ?? undefined}
+        />,
+      ];
+    });
   };
 
   return (
@@ -283,7 +375,7 @@ export function InstructionBuilder({
                 Instruction Details
               </span>
               <span className="px-2 py-0.5 text-xs rounded-md bg-[var(--background-secondary)] text-[var(--foreground-muted)]">
-                {instruction.accounts?.length || 0} accounts •{" "}
+                {collectAccountLeafCount(instruction.accounts)} accounts •{" "}
                 {instruction.args?.length || 0} args
               </span>
             </div>
@@ -305,38 +397,7 @@ export function InstructionBuilder({
                     </h4>
                   </div>
                   <div className="grid gap-2">
-                    {instruction.accounts.map(
-                      (account: IdlAccountItem, index: number) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-[var(--background-secondary)]"
-                        >
-                          <span className="w-6 h-6 rounded-md bg-[var(--surface)] text-xs font-mono flex items-center justify-center text-[var(--foreground-muted)]">
-                            {index}
-                          </span>
-                          <span className="font-medium text-sm text-[var(--foreground)]">
-                            {account.name || `Account ${index + 1}`}
-                          </span>
-                          <div className="flex gap-1.5 ml-auto">
-                            {isIdlAccount(account) && account.isMut && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--info-subtle)] text-[var(--info)]">
-                                MUT
-                              </span>
-                            )}
-                            {isIdlAccount(account) && account.isSigner && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--success-subtle)] text-[var(--success)]">
-                                SIGNER
-                              </span>
-                            )}
-                            {isIdlAccount(account) && account.isOptional && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--warning-subtle)] text-[var(--warning)]">
-                                OPT
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    )}
+                    {renderAccountSummary(instruction.accounts)}
                   </div>
                 </div>
               )}
@@ -482,25 +543,11 @@ export function InstructionBuilder({
                       Accounts
                     </h4>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--background-secondary)] text-[var(--foreground-muted)]">
-                      {instruction.accounts.length}
+                      {collectAccountLeafCount(instruction.accounts)}
                     </span>
                   </div>
                   <div className="space-y-4">
-                    {instruction.accounts.map((account, index) => {
-                      const accountName = account.name || `account_${index}`;
-                      return (
-                        <AccountInput
-                          key={index}
-                          account={account}
-                          index={index}
-                          value={(formValues[accountName] as string) || ""}
-                          onChange={(value) => setValue(accountName, value)}
-                          error={
-                            errors[accountName]?.message as string | undefined
-                          }
-                        />
-                      );
-                    })}
+                    {renderAccountInputs(instruction.accounts)}
                   </div>
                 </div>
               )}

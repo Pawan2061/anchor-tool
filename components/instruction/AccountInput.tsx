@@ -25,6 +25,8 @@ interface AccountInputProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  pathLabel?: string;
+  idlDescription?: string;
 }
 
 export function AccountInput({
@@ -33,6 +35,8 @@ export function AccountInput({
   value,
   onChange,
   error,
+  pathLabel,
+  idlDescription,
 }: AccountInputProps) {
   const [copied, setCopied] = useState(false);
   const { getActiveWallet } = useWalletStore();
@@ -47,10 +51,16 @@ export function AccountInput({
   const suggestedAddress = accountName
     ? getSuggestedAddress(accountName, network)
     : null;
-  const description = accountName ? getAccountDescription(accountName) : null;
+  const smartDescription = accountName ? getAccountDescription(accountName) : null;
+  const description = idlDescription || smartDescription;
 
   useEffect(() => {
     if (!value && accountName) {
+      if (isSigner && activeWallet) {
+        onChange(activeWallet.publicKey.toString());
+        return;
+      }
+
       if (
         typeof account === "object" &&
         account !== null &&
@@ -103,9 +113,16 @@ export function AccountInput({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <label className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-sm text-[var(--foreground)]">
-            {accountName}
-          </span>
+          <div className="min-w-0">
+            <span className="font-semibold text-sm text-[var(--foreground)]">
+              {accountName}
+            </span>
+            {pathLabel && (
+              <p className="text-[10px] text-[var(--foreground-muted)]">
+                {pathLabel}
+              </p>
+            )}
+          </div>
           <div className="flex gap-1.5">
             {isSigner && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[var(--success-subtle)] text-[var(--success)]">
