@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { Connection } from "@solana/web3.js";
 import { SolanaNetwork, ConnectionState } from "@/types/solana";
 import { createConnection, checkConnection } from "@/lib/solana/connection";
 
